@@ -36,6 +36,7 @@ In your repo: **Settings → Secrets and variables → Actions → Secrets**
 | `GITLAB_USERNAME` | Registry deploy token username | Ordomatics platform team |
 | `GITLAB_ACCESS_TOKEN` | Registry deploy token (read/write registry) | Ordomatics platform team |
 | `HELM_GITLAB_TOKEN` | GitLab token with helm repo write access | Ordomatics platform team |
+| `IMAGE_ACCESS_TOKEN` | Read-only token to pull the platform base image | Ordomatics platform team |
 | `GIT_TOKEN` | GitHub PAT to check out private submodules | Your org |
 
 `GITLAB_USERNAME` and `GITLAB_ACCESS_TOKEN` are generated automatically when the platform team
