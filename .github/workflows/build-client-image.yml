@@ -1,0 +1,167 @@
+# ==============================================================================
+# Reusable workflow — build-client-image
+# Called by client fork repos to build their thin image on top of the platform
+# and update the helm values file to trigger ArgoCD deployment.
+#
+# Branch model:
+#   main push → :test-<sha8> → updates values.<slug>-test.yaml  (test deploy)
+#   v* tag    → :<version>   → updates values.<slug>-prod.yaml  (prod deploy)
+#
+# Usage in client fork (.github/workflows/ci.yaml):
+#
+#   jobs:
+#     build:
+#       uses: ordomatics/odoo/.github/workflows/build-client-image.yml@main
+#       with:
+#         platform-tag: latest
+#         registry: registry.gitlab.com
+#         image-path: ordomatics/clients/acme
+#         values-file-test: chart/values.acme-test.yaml
+#         values-file-prod: chart/values.acme-prod.yaml
+#       secrets:
+#         gitlab-username: ${{ secrets.GITLAB_USERNAME }}
+#         gitlab-token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+#         git-token: ${{ secrets.GIT_TOKEN }}
+# ==============================================================================
+
+on:
+  workflow_call:
+    inputs:
+      platform-tag:
+        description: "Platform image tag to build on top of (default: latest)"
+        type: string
+        default: latest
+      registry:
+        description: "Container registry host (e.g. registry.gitlab.com)"
+        type: string
+        required: true
+      image-path:
+        description: "Image path within registry (e.g. ordomatics/clients/acme)"
+        type: string
+        required: true
+      values-file-test:
+        description: "Helm values file for test env (e.g. chart/values.acme-test.yaml)"
+        type: string
+        required: true
+      values-file-prod:
+        description: "Helm values file for prod env (e.g. chart/values.acme-prod.yaml)"
+        type: string
+        required: true
+    secrets:
+      gitlab-username:
+        required: true
+      gitlab-token:
+        required: true
+      git-token:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          token: ${{ secrets.git-token }}
+
+      - name: Initialize submodules
+        env:
+          GIT_TOKEN: ${{ secrets.git-token }}
+        run: |
+          git config --global url."https://x-access-token:${GIT_TOKEN}@github.com/".insteadOf "https://github.com/"
+          ./scripts/setup-submodules.sh
+
+      - name: Compute tags and target values file
+        id: meta
+        env:
+          REGISTRY: ${{ inputs.registry }}
+          IMAGE_PATH: ${{ inputs.image-path }}
+          VALUES_TEST: ${{ inputs.values-file-test }}
+          VALUES_PROD: ${{ inputs.values-file-prod }}
+        run: |
+          IMAGE="${REGISTRY}/${IMAGE_PATH}"
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+            TAG="${VERSION}"
+            VALUES_FILE="${VALUES_PROD}"
+            COMMIT_MSG="ci: release ${IMAGE_PATH##*/}@${TAG}"
+          else
+            TAG="test-${GITHUB_SHA::8}"
+            VALUES_FILE="${VALUES_TEST}"
+            COMMIT_MSG="ci: promote ${IMAGE_PATH##*/}@${TAG} to test"
+          fi
+
+          echo "tag=${TAG}"                     >> $GITHUB_OUTPUT
+          echo "image=${IMAGE}"                 >> $GITHUB_OUTPUT
+          echo "sha-tag=${IMAGE}:${TAG}"        >> $GITHUB_OUTPUT
+          echo "latest-tag=${IMAGE}:latest"     >> $GITHUB_OUTPUT
+          echo "values-file=${VALUES_FILE}"     >> $GITHUB_OUTPUT
+          echo "commit-msg=${COMMIT_MSG}"       >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ secrets.gitlab-username }}
+          password: ${{ secrets.gitlab-token }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            PLATFORM_TAG=${{ inputs.platform-tag }}
+          tags: |
+            ${{ steps.meta.outputs.sha-tag }}
+            ${{ steps.meta.outputs.latest-tag }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.44.2/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Update helm values and push
+        env:
+          GITLAB_TOKEN: ${{ secrets.gitlab-token }}
+          IMAGE_TAG: ${{ steps.meta.outputs.tag }}
+          VALUES_FILE: ${{ steps.meta.outputs.values-file }}
+          COMMIT_MESSAGE: ${{ steps.meta.outputs.commit-msg }}
+        run: |
+          git clone \
+            "https://oauth2:${GITLAB_TOKEN}@gitlab.com/ordomatics/helm/odoo.git" \
+            helm-repo
+          cd helm-repo
+
+          yq e ".image.tag = \"${IMAGE_TAG}\"" -i "${VALUES_FILE}"
+
+          git config user.email "ci@ordomatics.com"
+          git config user.name "GitHub CI"
+          git add "${VALUES_FILE}"
+          if git diff --cached --quiet; then
+            echo "No changes — already at ${IMAGE_TAG}"
+            exit 0
+          fi
+          git commit -m "${COMMIT_MESSAGE}"
+          git push || (git pull --rebase && git push)
+
+      - name: Summary
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          VALUES_FILE: ${{ steps.meta.outputs.values-file }}
+        run: |
+          echo "### Client image deployed" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${IMAGE}:${TAG}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Helm:** \`${VALUES_FILE}\` updated" >> $GITHUB_STEP_SUMMARY

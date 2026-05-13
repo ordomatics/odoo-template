@@ -1,0 +1,51 @@
+name: Deploy to Helm repo
+description: Update image.tag in a Helm values file and push to the GitLab helm repo.
+
+inputs:
+  values-file:
+    description: "Relative path within the helm repo, e.g. chart/values.test.yaml"
+    required: true
+  image-tag:
+    description: "Image tag to set, e.g. test-abc1234"
+    required: true
+  commit-message:
+    description: "Git commit message"
+    required: true
+  gitlab-token:
+    description: "GitLab personal access token with repo write access"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install yq
+      shell: bash
+      run: |
+        sudo wget -qO /usr/local/bin/yq \
+          https://github.com/mikefarah/yq/releases/download/v4.44.2/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+
+    - name: Update Helm values and push
+      shell: bash
+      env:
+        GITLAB_TOKEN: ${{ inputs.gitlab-token }}
+        VALUES_FILE: ${{ inputs.values-file }}
+        IMAGE_TAG: ${{ inputs.image-tag }}
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+      run: |
+        git clone \
+          "https://oauth2:${GITLAB_TOKEN}@gitlab.com/ordomatics/helm/odoo.git" \
+          helm-repo
+        cd helm-repo
+
+        yq e ".image.tag = \"${IMAGE_TAG}\"" -i "${VALUES_FILE}"
+
+        git config user.email "ci@ordomatics.com"
+        git config user.name "GitHub CI"
+        git add "${VALUES_FILE}"
+        if git diff --cached --quiet; then
+          echo "No changes — already at ${IMAGE_TAG}"
+          exit 0
+        fi
+        git commit -m "${COMMIT_MESSAGE}"
+        git push || (git pull --rebase && git push)

@@ -1,0 +1,41 @@
+python-dotenv
+fastapi>=0.110.0
+uvicorn
+python-multipart
+ujson
+a2wsgi>=1.10.6
+parse-accept-language
+packaging
+aiohttp
+aiofiles
+requests>=2.25.0
+pandas>=2.2
+openpyxl>=3.1
+# odoo-llm core
+PyMuPDF
+anthropic
+claude-agent-sdk
+emoji
+jinja2
+jsonref
+jsonschema
+markdown2
+markdownify
+mcp
+nltk
+numpy
+openai
+pgvector
+pydantic>=2.0.0
+pyyaml
+# LLM provider clients — pre-installed so any provider module can be activated without a rebuild
+chromadb-client
+fal_client
+letta-client
+llama_index
+mistralai
+ollama
+qdrant-client
+replicate
+# OCA storage (fs_attachment_s3)
+fsspec[s3]
