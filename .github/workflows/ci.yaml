@@ -65,14 +65,8 @@ jobs:
           PLATFORM_AUTH=$(echo -n "tenant-pull:${{ secrets.IMAGE_ACCESS_TOKEN }}" | base64 -w0)
           CLIENT_AUTH=$(echo -n "${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_ACCESS_TOKEN }}" | base64 -w0)
           mkdir -p ~/.docker
-          python3 -c "
-          import json, os
-          config = {'auths': {
-            'registry.gitlab.com/ordomatics/helm': {'auth': os.environ['PLATFORM_AUTH']},
-            'registry.gitlab.com/ordomatics/clients': {'auth': os.environ['CLIENT_AUTH']},
-          }}
-          print(json.dumps(config))
-          " > ~/.docker/config.json
+          printf '{"auths":{"registry.gitlab.com/ordomatics/helm":{"auth":"%s"},"registry.gitlab.com/ordomatics/clients":{"auth":"%s"}}}' \
+            "$PLATFORM_AUTH" "$CLIENT_AUTH" > ~/.docker/config.json
           cat ~/.docker/config.json
 
       - name: Build and push dev-latest
