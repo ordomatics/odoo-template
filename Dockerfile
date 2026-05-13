@@ -1,4 +1,4 @@
-FROM odoo:18.0
+FROM registry.gitlab.com/ordomatics/helm/odoo:latest
 
 # Switch to root to install dependencies
 USER root
