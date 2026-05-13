@@ -11,8 +11,8 @@ inputs:
   commit-message:
     description: "Git commit message"
     required: true
-  gitlab-token:
-    description: "GitLab personal access token with repo write access"
+  helm-gitlab-token:
+    description: "GitLab token with read_repository/write_repository access to the Ordomatics helm repo"
     required: true
 
 runs:
@@ -28,7 +28,7 @@ runs:
     - name: Update Helm values and push
       shell: bash
       env:
-        GITLAB_TOKEN: ${{ inputs.gitlab-token }}
+        GITLAB_TOKEN: ${{ inputs.helm-gitlab-token }}
         VALUES_FILE: ${{ inputs.values-file }}
         IMAGE_TAG: ${{ inputs.image-tag }}
         COMMIT_MESSAGE: ${{ inputs.commit-message }}

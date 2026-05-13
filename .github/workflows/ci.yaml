@@ -183,7 +183,7 @@ jobs:
           values-file: chart/values.${{ vars.CLIENT_SLUG }}-test.yaml
           image-tag: ${{ steps.tag.outputs.tag }}
           commit-message: "ci: promote ${{ vars.CLIENT_SLUG }}@${{ steps.tag.outputs.tag }}"
-          gitlab-token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+          helm-gitlab-token: ${{ secrets.HELM_GITLAB_TOKEN }}
 
       - name: Promote summary
         run: |
@@ -286,7 +286,7 @@ jobs:
           values-file: chart/values.${{ vars.CLIENT_SLUG }}-staging.yaml
           image-tag: ${{ steps.tag.outputs.tag }}
           commit-message: "ci: promote ${{ vars.CLIENT_SLUG }}@${{ steps.tag.outputs.tag }} to staging"
-          gitlab-token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+          helm-gitlab-token: ${{ secrets.HELM_GITLAB_TOKEN }}
 
       - name: Promote summary
         run: |
@@ -353,7 +353,7 @@ jobs:
           values-file: chart/values.${{ vars.CLIENT_SLUG }}-prod.yaml
           image-tag: ${{ steps.tags.outputs.primary }}
           commit-message: "ci: release ${{ vars.CLIENT_SLUG }}@${{ steps.tags.outputs.primary }}"
-          gitlab-token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+          helm-gitlab-token: ${{ secrets.HELM_GITLAB_TOKEN }}
 
       - name: Promote summary
         run: |
