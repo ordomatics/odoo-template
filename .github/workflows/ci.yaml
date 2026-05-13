@@ -64,7 +64,15 @@ jobs:
         run: |
           PLATFORM_AUTH=$(echo -n "tenant-pull:${{ secrets.IMAGE_ACCESS_TOKEN }}" | base64 -w0)
           CLIENT_AUTH=$(echo -n "${{ secrets.GITLAB_USERNAME }}:${{ secrets.GITLAB_ACCESS_TOKEN }}" | base64 -w0)
-          echo "DOCKER_AUTH_CONFIG={\"auths\":{\"registry.gitlab.com/ordomatics/helm\":{\"auth\":\"${PLATFORM_AUTH}\"},\"registry.gitlab.com/ordomatics/clients\":{\"auth\":\"${CLIENT_AUTH}\"}}}" >> $GITHUB_ENV
+          mkdir -p ~/.docker
+          cat > ~/.docker/config.json <<EOF
+          {
+            "auths": {
+              "registry.gitlab.com/ordomatics/helm": {"auth": "${PLATFORM_AUTH}"},
+              "registry.gitlab.com/ordomatics/clients": {"auth": "${CLIENT_AUTH}"}
+            }
+          }
+          EOF
 
       - name: Build and push dev-latest
         uses: docker/build-push-action@v6
