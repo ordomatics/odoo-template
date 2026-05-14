@@ -35,7 +35,7 @@ services:
       - "8069:8069"
     volumes:
       - odoo-web-data:/var/lib/odoo
-      - ./addons:/mnt/extra-addons
+      - ./addons:/mnt/extra-addons/client
       - ./logs:/var/log/odoo
     restart: unless-stopped
     healthcheck:
