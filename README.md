@@ -146,11 +146,27 @@ git submodule update --init --recursive
 # Copy and fill in local env
 cp .env.example .env   # edit DB credentials, API keys, etc.
 
-# Start
-docker compose up
+# Start (first time or after code changes)
+docker compose up --build -d
 ```
 
 Access Odoo at `http://localhost:8069`.
+
+### Picking up platform updates
+
+When the Ordomatics platform team releases a new base image (new platform modules, entrypoint
+changes, etc.), force-pull the latest base image before rebuilding:
+
+```bash
+docker compose build --pull
+docker compose down -v   # removes stale anonymous volumes so new module structure is picked up
+docker compose up -d
+```
+
+> `--pull` tells Docker to always check the registry for a newer base image rather than using
+> the locally cached version. `down -v` is needed because `VOLUME /mnt/extra-addons` in the
+> base image means Docker uses an anonymous volume for that path — without `-v`, the old volume
+> (with the old module structure) would be reused even after a rebuild.
 
 ---
 
@@ -163,20 +179,13 @@ Access Odoo at `http://localhost:8069`.
 │   │   └── deploy-helm/        # Reusable action: update helm values + push
 │   └── workflows/
 │       └── ci.yaml             # Multi-env CI/CD pipeline
-├── addons/                     # Git submodules — one per addon repo
-│   ├── whatsapp/
-│   ├── billing/
-│   ├── platform/
-│   ├── enterprise/
-│   └── oca/
-├── scripts/
-│   └── setup-odoo-modules.sh   # Module install/upgrade entrypoint
-├── Dockerfile
-├── entrypoint.sh
+├── addons/                     # Client-specific addon submodules (mounted as /mnt/extra-addons/client)
+│   └── enterprise/             # Example — replace with your actual enterprise repo
+├── Dockerfile                  # Thin layer on platform base image
+├── db.Dockerfile               # Postgres + pgvector for local dev
+├── docker-compose.yml          # Local development stack
 ├── modules.cfg                 # Modules to install/upgrade on deploy
-├── odoo.conf.template          # Odoo config rendered at startup
-├── requirements.txt
-└── requirements-dev.txt
+└── requirements.txt            # Client-specific Python packages
 ```
 
 ---
