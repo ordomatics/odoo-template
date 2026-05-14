@@ -1,0 +1,42 @@
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Logs
+logs/
+*.log
+
+# Odoo config (generated at runtime)
+config/odoo.conf
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.installed.cfg
+*.egg
+build/
+dist/
+.eggs/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+pyrightconfig.json
+
+# Editors
+.vscode/
+.idea/
+
+# Keys / certs
+*.pem
+
+# macOS
+.DS_Store
