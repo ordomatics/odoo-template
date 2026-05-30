@@ -68,7 +68,7 @@ git add addons/.keep
 git commit -m "chore: placeholder for custom addons"
 ```
 
-Update `modules.cfg` to list any custom modules that should be installed/upgraded on deployment.
+Add your client module name at the bottom of `modules.cfg` (after `ordomatics`). The file ships with the full platform module list — do not remove existing entries.
 
 ### 5. Configure odoo.conf.template
 
@@ -152,6 +152,20 @@ docker compose up --build -d
 
 Access Odoo at `http://localhost:8069`.
 
+### Cloudflare Tunnel
+
+The compose stack includes a `cloudflared` service for exposing the local instance via a Cloudflare Tunnel. It is gated behind the `tunnel` profile and only starts when explicitly requested:
+
+```bash
+docker compose --profile tunnel up -d
+```
+
+Place your tunnel credentials in `cloudflared/credentials.json` and your tunnel config in `cloudflared/config.yml` before starting. The credentials file is gitignored and must never be committed.
+
+### Redis
+
+Redis is included in the compose stack for session storage (`SESSION_REDIS_HOST=redis`). It starts automatically with `docker compose up` and requires no extra configuration for local dev.
+
 ### Picking up platform updates
 
 When the Ordomatics platform team releases a new base image (new platform modules, entrypoint
@@ -181,9 +195,12 @@ docker compose up -d
 │       └── ci.yaml             # Multi-env CI/CD pipeline
 ├── addons/                     # Client-specific addon submodules (mounted as /mnt/extra-addons/client)
 │   └── enterprise/             # Example — replace with your actual enterprise repo
+├── cloudflared/                # Cloudflare Tunnel config (activate with --profile tunnel)
+│   ├── config.yml
+│   └── credentials.json        # Never commit — listed in .gitignore
 ├── Dockerfile                  # Thin layer on platform base image
 ├── db.Dockerfile               # Postgres + pgvector for local dev
-├── docker-compose.yml          # Local development stack
+├── docker-compose.yml          # Local development stack (includes Redis + Cloudflare Tunnel)
 ├── modules.cfg                 # Modules to install/upgrade on deploy
 └── requirements.txt            # Client-specific Python packages
 ```

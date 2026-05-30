@@ -1,3 +1,5 @@
+name: client-name
+
 services:
   db:
     build:
@@ -9,14 +11,16 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - odoo-db-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 15
       start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
 
   odoo:
     build:
@@ -28,9 +32,12 @@ services:
     environment:
       - ODOO_DEV_MODE=${ODOO_DEV_MODE:-true}
       - SKIP_MODULE_SETUP=false
+      - SESSION_REDIS_HOST=redis
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     ports:
       - "8069:8069"
     volumes:
@@ -44,6 +51,19 @@ services:
       timeout: 10s
       retries: 10
       start_period: 120s
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --config /etc/cloudflared/config.yml --no-autoupdate run
+    volumes:
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ./cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
+    depends_on:
+      odoo:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - tunnel
 
 secrets:
   github_token:
