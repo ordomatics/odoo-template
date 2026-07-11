@@ -7,15 +7,22 @@ name: CI/CD Pipeline
 #   EXTERNAL_GITLAB_REGISTRY  e.g. registry.gitlab.com
 #   EXTERNAL_PATH             e.g. ordomatics/clients/smartacus
 #
-# Required GitHub repo secrets:
-#   GITLAB_USERNAME           GitLab username with registry push access
-#   GITLAB_ACCESS_TOKEN       GitLab personal access token
+# Required GitHub repo secrets (all issued by the onboard-tier2 Backstage
+# template, scoped to just this client's own ordomatics/clients/<slug>
+# deploy repo — not a personal account's broad PAT):
+#   GITLAB_USERNAME           Deploy token username (registry push)
+#   GITLAB_ACCESS_TOKEN       Deploy token (write_registry scope)
+#   GITLAB_DEPLOY_SSH_KEY     SSH deploy key private key (can_push, values.yaml commit)
 #   GIT_TOKEN                 GitHub PAT with access to private submodules
 #
 # Branch model:
 #   dev     → build + push dev-latest → test-promote (chained)
-#   staging → pull test-latest + validate + promote → values.<slug>-staging.yaml
-#   main    → pull test-latest + promote             → values.<slug>-prod.yaml
+#   staging → pull test-latest + validate + promote → values.staging.yaml
+#   main    → pull test-latest + promote             → values.prod.yaml
+#
+# Values files live in the client's own ordomatics/clients/<slug> deploy
+# repo (one values.<env>.yaml per environment), not in the shared
+# ordomatics/helm/odoo chart repo.
 
 on:
   push:
@@ -190,10 +197,11 @@ jobs:
       - name: Update helm values
         uses: ./.github/actions/deploy-helm
         with:
-          values-file: chart/values.${{ vars.CLIENT_SLUG }}-test.yaml
+          deploy-repo: ordomatics/clients/${{ vars.CLIENT_SLUG }}
+          values-file: values.test.yaml
           image-tag: ${{ steps.tag.outputs.tag }}
           commit-message: "ci: promote ${{ vars.CLIENT_SLUG }}@${{ steps.tag.outputs.tag }}"
-          helm-gitlab-token: ${{ secrets.HELM_GITLAB_TOKEN }}
+          deploy-ssh-key: ${{ secrets.GITLAB_DEPLOY_SSH_KEY }}
 
       - name: Promote summary
         run: |
@@ -293,10 +301,11 @@ jobs:
       - name: Update helm values
         uses: ./.github/actions/deploy-helm
         with:
-          values-file: chart/values.${{ vars.CLIENT_SLUG }}-staging.yaml
+          deploy-repo: ordomatics/clients/${{ vars.CLIENT_SLUG }}
+          values-file: values.staging.yaml
           image-tag: ${{ steps.tag.outputs.tag }}
           commit-message: "ci: promote ${{ vars.CLIENT_SLUG }}@${{ steps.tag.outputs.tag }} to staging"
-          helm-gitlab-token: ${{ secrets.HELM_GITLAB_TOKEN }}
+          deploy-ssh-key: ${{ secrets.GITLAB_DEPLOY_SSH_KEY }}
 
       - name: Promote summary
         run: |
@@ -360,10 +369,11 @@ jobs:
       - name: Update helm values
         uses: ./.github/actions/deploy-helm
         with:
-          values-file: chart/values.${{ vars.CLIENT_SLUG }}-prod.yaml
+          deploy-repo: ordomatics/clients/${{ vars.CLIENT_SLUG }}
+          values-file: values.prod.yaml
           image-tag: ${{ steps.tags.outputs.primary }}
           commit-message: "ci: release ${{ vars.CLIENT_SLUG }}@${{ steps.tags.outputs.primary }}"
-          helm-gitlab-token: ${{ secrets.HELM_GITLAB_TOKEN }}
+          deploy-ssh-key: ${{ secrets.GITLAB_DEPLOY_SSH_KEY }}
 
       - name: Promote summary
         run: |
