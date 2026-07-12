@@ -1,4 +1,4 @@
-FROM registry.gitlab.com/ordomatics/helm/odoo:latest
+FROM registry.gitlab.com/ordomatics/clients/ordomatics:latest
 
 USER root
 
