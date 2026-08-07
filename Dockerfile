@@ -36,8 +36,13 @@ ENV LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8
 
 COPY ./requirements.txt /tmp/requirements.txt
+# --ignore-installed: several debian-packaged Python libs (typing_extensions,
+# idna, etc.) ship without a pip RECORD file, which makes a normal upgrade
+# fail with "Cannot uninstall ... RECORD file not found". Confirmed live
+# 2026-08-07 hitting this one package at a time; --ignore-installed sidesteps
+# all of them at once instead of allowlisting each by name.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 install --break-system-packages -r /tmp/requirements.txt
+    pip3 install --break-system-packages --ignore-installed -r /tmp/requirements.txt
 
 # addons/ mirrors /mnt/extra-addons/ — sparse-checked-out per .gitmodules'
 # sparseCheckout keys (see scripts/setup-submodules.sh, applied by CI before

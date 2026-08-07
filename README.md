@@ -38,7 +38,41 @@ out, only a GitLab deploy token to push the built image.
    *not* push `:latest` from more than one version branch.
 5. Push — CI builds and publishes automatically.
 
-## Local testing
+## Local development
+
+```bash
+./scripts/setup-submodules.sh
+cp .env.example .env   # fill in DB_NAME at minimum
+docker compose up --build -d
+```
+
+Access Odoo at `http://localhost:8069`. `docker-compose.yml` brings up its
+own Postgres (`db.Dockerfile`, with pgvector) and Redis (for
+`session_redis`) — self-contained, no external services needed.
+
+## File structure
+
+```
+.
+├── .github/workflows/
+│   └── build-base-image.yml   # Builds + pushes ordomatics/odoo:18.0 on push
+├── addons/                    # Submodules, sparse-checked-out (see .gitmodules)
+│   ├── ordomatics/             # session_redis, bus_keepalive, n8n_*, llm_mssql, llm_n8n
+│   ├── odoo-llm/                # llm, llm_tool, llm_thread, llm_mcp_server, llm_assistant, web_json_editor
+│   └── oca/queue/                # queue_job
+├── Dockerfile                 # FROM odoo:18.0 — this is the actual base image build
+├── db.Dockerfile              # Postgres + pgvector for local dev
+├── docker-compose.yml         # Local development stack
+├── entrypoint.sh              # Config templating + module-setup dispatch
+├── modules.cfg                # Modules to install/upgrade on deploy
+├── odoo.conf.template          # Rendered to odoo.conf at container start
+├── requirements.txt           # Python deps for the modules baked into this image
+└── scripts/
+    ├── setup-odoo-modules.sh   # Module install/upgrade (run via entrypoint.sh)
+    └── setup-submodules.sh     # Applies .gitmodules' sparseCheckout patterns
+```
+
+## Local testing (image only, no compose stack)
 
 ```bash
 ./scripts/setup-submodules.sh
