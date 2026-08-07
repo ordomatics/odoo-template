@@ -8,6 +8,6 @@
 	sparseCheckout = llm/* llm_thread/* llm_tool/* llm_assistant/* llm_mcp_server/* web_json_editor/*
 [submodule "addons/oca/queue"]
 	path = addons/oca/queue
-	url = https://github.com/moctarjallo/queue.git
-	branch = 18.0
+	url = https://github.com/OCA/queue.git
+	branch = 19.0
 	sparseCheckout = queue_job/*
