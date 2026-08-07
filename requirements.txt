@@ -9,3 +9,7 @@ pydantic>=2.0.0
 mcp
 # llm_mssql (needs Microsoft ODBC Driver 18 at the OS level too — see Dockerfile)
 pyodbc
+# llm_assistant (jinja2/pyyaml are already present in odoo:17.0/18.0's base
+# Python env; jsonschema confirmed missing on both 2026-08-07 — the only
+# one actually needed here; added here too for consistency across versions)
+jsonschema
