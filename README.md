@@ -1,10 +1,12 @@
-# ordomatics/odoo — generic base image (this branch: 18.0)
+# ordomatics/odoo — generic base image (this branch: 17.0)
 
-This branch builds `registry.gitlab.com/ordomatics/odoo:18.0` — a generic,
-public Odoo 18.0 image with Ordomatics's deployment tooling baked in
+This branch builds `registry.gitlab.com/ordomatics/odoo:17.0` — a generic,
+public Odoo 17.0 image with Ordomatics's deployment tooling baked in
 (entrypoint, module-setup script, config templating) but **no proprietary
 addons**. It is not itself a client template — see `main`/`dev` on this
 same repo for that (the "Use this template" branches, `FROM` this image).
+The current default/`:latest` version is `19.0` — pin this specific tag if
+you need Odoo 17.0.
 
 Used as:
 1. The seed image for every new Tier2 client's first onboarding, before
@@ -14,7 +16,7 @@ Used as:
 
 ## What's baked in
 
-- Odoo 18.0 core + `crm`, `queue_job` (required by `server_wide_modules`)
+- Odoo 17.0 core + `crm`, `queue_job` (required by `server_wide_modules`)
 - `session_redis`, `bus_keepalive` — generic infra (post_load hooks,
   required by `odoo.conf.template`)
 - `n8n_connector`, `n8n_crm` — standalone n8n integration
@@ -25,18 +27,34 @@ Used as:
 - Microsoft ODBC Driver 18 + `pyodbc` (for `llm_mssql`)
 
 All submodule sources (`ordomatics/ordomatics`, `moctarjallo/odoo-llm`,
-`moctarjallo/queue`) are public — CI needs no GitHub token to check them
-out, only a GitLab deploy token to push the built image.
+`OCA/queue`) are public — CI needs no GitHub token to check them out, only
+a GitLab deploy token to push the built image.
 
-## Adding a version branch (e.g. 17.0, 19.0)
+## Adding a version branch (e.g. 18.0, 19.0)
 
-1. Branch from `18.0`.
-2. `Dockerfile`: change `FROM odoo:18.0` to the target version.
-3. `entrypoint.sh`: change `/var/lib/odoo/addons/18.0` to the target version.
-4. `.github/workflows/build-base-image.yml`: change the trigger branch and
-   both tags (`ordomatics/odoo:18.0` → `ordomatics/odoo:<version>`) — do
-   *not* push `:latest` from more than one version branch.
-5. Push — CI builds and publishes automatically.
+1. Branch from `18.0` (the branch with the most complete, current fixes —
+   see its own README for the exact steps; this branch exists as a
+   reference for Odoo 17.0's own quirks, not as the template to fork from).
+2. `Dockerfile`: change `FROM odoo:<version>` and the addons-path `mkdir`.
+3. `entrypoint.sh`: change `/var/lib/odoo/addons/<version>`.
+4. `.gitmodules`: point `addons/oca/queue` at that version's OCA/queue
+   branch (falls back to upstream `OCA/queue` if a personal fork lacks
+   that branch — confirm with `git ls-remote --heads`), then re-point the
+   submodule checkout itself and stage it (`git submodule update --remote`
+   only tracks the `.gitmodules` branch field on an explicit `--remote`
+   update — a plain `git submodule update` keeps the old commit).
+5. `.github/workflows/ci.yaml`: change the trigger branch and the tag
+   (`ordomatics/odoo:<old>` → `ordomatics/odoo:<version>`) — do *not* push
+   `:latest` from more than one version branch. If the new branch is
+   meant to become the new default, move the `:latest` tag onto it here
+   and remove it from whichever branch owned it before.
+6. Push — CI builds and publishes automatically.
+
+Note: `odoo:17.0`'s base OS (Ubuntu 22.04, pip 22.0.2) predates PEP 668 —
+`pip3 install --break-system-packages` errors with "no such option" here,
+while `odoo:18.0`/`19.0`'s newer base requires the flag. The pip install
+step in this Dockerfile detects support instead of hardcoding it; keep
+that detection if you add another version branch on an older base.
 
 ## Local development
 
@@ -73,14 +91,14 @@ Access Odoo at `http://localhost:8069` (direct) or `http://localhost:8070`
 ```
 .
 ├── .github/workflows/
-│   └── build-base-image.yml    # Builds + pushes ordomatics/odoo:18.0 on push
+│   └── ci.yaml                  # Builds + pushes ordomatics/odoo:17.0 on push
 ├── addons/                     # Submodules, sparse-checked-out (see .gitmodules)
 │   ├── ordomatics/              # session_redis, bus_keepalive, n8n_*, llm_mssql, llm_n8n
 │   ├── odoo-llm/                 # llm, llm_tool, llm_thread, llm_mcp_server, llm_assistant, web_json_editor
 │   └── oca/queue/                 # queue_job
 ├── caddy/
 │   └── Caddyfile.dev            # Reverse proxy config (docker-compose.override.yml's proxy service)
-├── Dockerfile                  # FROM odoo:18.0 — this is the actual base image build
+├── Dockerfile                  # FROM odoo:17.0 — this is the actual base image build
 ├── db.Dockerfile               # Postgres + pgvector, creates the n8n database too
 ├── docker-compose.yml          # Core: odoo only
 ├── docker-compose.override.yml # Auto-merged: db, redis, proxy, cloudflared
@@ -98,6 +116,6 @@ Access Odoo at `http://localhost:8069` (direct) or `http://localhost:8070`
 
 ```bash
 ./scripts/setup-submodules.sh
-docker build -t ordomatics-odoo-base:18.0 .
-docker run --rm -e ADMIN_PASSWD=test ordomatics-odoo-base:18.0 odoo --version
+docker build -t ordomatics-odoo-base:17.0 .
+docker run --rm -e ADMIN_PASSWD=test ordomatics-odoo-base:17.0 odoo --version
 ```
