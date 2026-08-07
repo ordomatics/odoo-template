@@ -19,12 +19,19 @@ Used as:
 - Odoo 18.0 core + `crm`, `queue_job` (required by `server_wide_modules`)
 - `session_redis`, `bus_keepalive` — generic infra (post_load hooks,
   required by `odoo.conf.template`)
-- `n8n_connector`, `n8n_crm` — standalone n8n integration
-- `llm_mssql`, `llm_n8n` — MSSQL/n8n connectors for the LLM tool-calling
-  layer, plus their transitive deps from `odoo-llm` (`llm`, `llm_tool`,
-  `llm_thread`, `llm_mcp_server`, `llm_assistant`, `web_json_editor`) —
-  *not* the full LLM suite (no chat/generation modules)
-- Microsoft ODBC Driver 18 + `pyodbc` (for `llm_mssql`)
+- The LLM tool/assistant chain from `odoo-llm`: `llm`, `llm_tool`,
+  `llm_thread`, `llm_mcp_server`, `llm_assistant`, `web_json_editor` — *not*
+  the full LLM suite (no chat/generation modules)
+
+**Deliberately NOT baked in** (opt-in only — these pull in a third-party
+dependency most clients don't need): `n8n_connector`, `n8n_crm`,
+`llm_mssql`, `llm_n8n`. They're still public, in the same
+`ordomatics/ordomatics` repo — a client who wants one adds it themselves as
+their own `addons/` submodule and lists it in their own `modules.cfg`
+(`llm_mssql` also needs the Microsoft ODBC Driver 18 + `pyodbc`, neither of
+which are in this image — install both in the client's own Dockerfile
+layer). `docker-compose.integrations.yml`'s `n8n`/`mssql` services are
+already opt-in local-dev infrastructure for exactly this case.
 
 All submodule sources (`ordomatics/ordomatics`, `moctarjallo/odoo-llm`,
 `moctarjallo/queue`) are public — CI needs no GitHub token to check them
