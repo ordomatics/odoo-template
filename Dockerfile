@@ -10,16 +10,22 @@ FROM odoo:18.0
 
 USER root
 
-# unixodbc-dev/msodbcsql18 (needed for pyodbc/llm_mssql) deliberately NOT
-# installed here — llm_mssql is an opt-in integration module, not baked
-# into this image. A client who adds it back as their own addon installs
-# the ODBC driver in their own Dockerfile layer.
+# unixodbc-dev + msodbcsql18: needed for pyodbc (llm_mssql).
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       postgresql-client \
       gettext-base \
       git \
-      gosu && \
+      gosu \
+      curl \
+      gnupg \
+      unixodbc-dev && \
+    curl https://packages.microsoft.com/keys/microsoft.asc | \
+      gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg && \
+    curl https://packages.microsoft.com/config/debian/12/prod.list \
+      > /etc/apt/sources.list.d/mssql-release.list && \
+    apt-get update && \
+    ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 && \
     rm -rf /var/lib/apt/lists/* && \
     mkdir -p /var/log/odoo /mnt/extra-addons /var/lib/odoo/addons/18.0 && \
     chown -R odoo:odoo /var/log/odoo /mnt /var/lib/odoo && \
@@ -46,9 +52,10 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # addons/ mirrors /mnt/extra-addons/ — sparse-checked-out per .gitmodules'
 # sparseCheckout keys (see scripts/setup-submodules.sh, applied by CI before
-# this COPY runs): session_redis/bus_keepalive from addons/ordomatics;
-# llm/llm_tool/llm_thread/web_json_editor/llm_mcp_server/llm_assistant from
-# addons/odoo-llm; queue_job from addons/oca/queue.
+# this COPY runs): session_redis/bus_keepalive/n8n_connector/n8n_crm/
+# llm_mssql/llm_n8n from addons/ordomatics; llm/llm_tool/llm_thread/
+# web_json_editor/llm_mcp_server/llm_assistant from addons/odoo-llm;
+# queue_job from addons/oca/queue.
 COPY --chown=odoo:odoo ./addons /mnt/extra-addons
 
 COPY ./scripts/setup-odoo-modules.sh /tmp/setup-odoo-modules.sh
