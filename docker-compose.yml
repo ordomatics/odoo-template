@@ -1,44 +1,19 @@
 name: client-name
 
+# Core service only. `docker compose up` also auto-merges
+# docker-compose.override.yml (db + redis) with no extra flags — that's
+# enough for a working local Odoo. Add docker-compose.integrations.yml on
+# top (-f) for n8n/mssql/proxy/cloudflared:
+#   docker compose -f docker-compose.yml -f docker-compose.integrations.yml up
 services:
-  db:
-    build:
-      context: .
-      dockerfile: db.Dockerfile
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - odoo-db-data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 30s
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-
   odoo:
     build:
       context: .
-      secrets:
-        - github_token
     env_file:
       - .env
     environment:
       - ODOO_DEV_MODE=${ODOO_DEV_MODE:-true}
       - SKIP_MODULE_SETUP=false
-      - SESSION_REDIS_HOST=redis
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
     ports:
       - "8069:8069"
     volumes:
@@ -53,23 +28,5 @@ services:
       retries: 10
       start_period: 120s
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    command: tunnel --config /etc/cloudflared/config.yml --no-autoupdate run
-    volumes:
-      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
-      - ./cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
-    depends_on:
-      odoo:
-        condition: service_healthy
-    restart: unless-stopped
-    profiles:
-      - tunnel
-
-secrets:
-  github_token:
-    environment: GITHUB_TOKEN
-
 volumes:
-  odoo-db-data:
   odoo-web-data:

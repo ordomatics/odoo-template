@@ -1,0 +1,49 @@
+:80 {
+    # n8n — matched when N8N_HOST env var is set on the proxy container
+    @n8n host {$N8N_HOST:n8n.invalid}
+    handle @n8n {
+        reverse_proxy n8n:5678 {
+            flush_interval -1
+        }
+    }
+
+    # CF-Visitor: {"scheme":"https"} when behind Cloudflare Tunnel.
+    # Fall back to {scheme} (http) for direct localhost:8070 access so
+    # secure cookies still work in the browser.
+    map {header.cf-visitor} {proto} {
+        default {scheme}
+        ~https  https
+    }
+
+    # Dev mode (workers=0): WebSocket is served by the main Odoo HTTP server on 8069.
+    # (Port 8072 gevent only starts when workers > 0.)
+    handle /websocket* {
+        reverse_proxy odoo:8069 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {proto}
+        }
+    }
+
+    # MCP endpoint requires immediate flushing for Streamable HTTP transport
+    handle /mcp* {
+        reverse_proxy odoo:8069 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {proto}
+            flush_interval -1
+        }
+    }
+
+    # All other traffic
+    handle {
+        reverse_proxy odoo:8069 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {proto}
+        }
+    }
+}

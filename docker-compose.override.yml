@@ -1,0 +1,83 @@
+# Auto-merged by `docker compose up` with no extra flags — infra/networking
+# that mirrors production topology (db, redis, reverse proxy, tunnel), not
+# third-party service integrations (those are opt-in, see
+# docker-compose.integrations.yml for n8n/mssql).
+services:
+  db:
+    build:
+      context: .
+      dockerfile: db.Dockerfile
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # Local session store for session_redis (server_wide_modules). Defaults to
+  # host "redis" / port 6379, so no extra env needed. Prod/K8s provide their
+  # own Redis — this is dev-only.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  odoo:
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - SESSION_REDIS_HOST=redis
+
+  # Reverse proxy mirroring production's ingress routing (WebSocket, MCP
+  # streaming). Harmless with no other services up — its n8n route
+  # (Caddyfile.dev) only matches if N8N_HOST is set and something's actually
+  # listening there.
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "8070:80"
+    volumes:
+      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    environment:
+      - N8N_HOST=${N8N_HOST:-n8n.invalid}
+    depends_on:
+      odoo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Exposes the proxy publicly via a Cloudflare Tunnel. Profile-gated
+  # regardless of which compose file it's declared in — `--profile tunnel`
+  # is always required to actually start it. Token comes from the Zero
+  # Trust dashboard (Networks → Tunnels); set CLOUDFLARE_TUNNEL_TOKEN in
+  # .env and place your own config in cloudflared/ before starting.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --config /etc/cloudflared/config.yml --no-autoupdate run
+    volumes:
+      - ./cloudflared/config.yml:/etc/cloudflared/config.yml:ro
+      - ./cloudflared/credentials.json:/etc/cloudflared/credentials.json:ro
+    depends_on:
+      proxy:
+        condition: service_started
+    restart: unless-stopped
+    profiles:
+      - tunnel
+
+volumes:
+  odoo-db-data:

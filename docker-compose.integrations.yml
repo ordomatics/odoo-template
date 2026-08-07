@@ -1,0 +1,53 @@
+# Opt-in third-party service integrations — not auto-merged, and distinct
+# from docker-compose.override.yml (infra/networking: db, redis, proxy,
+# cloudflared, all auto-merged). Bring up alongside the core stack:
+#   docker compose -f docker-compose.yml -f docker-compose.integrations.yml up
+#
+# n8n:    always started when this file is included (n8n_connector/n8n_crm
+#         are baked into the base image). Shares the same Postgres as odoo
+#         (docker-compose.override.yml's db service creates the "n8n"
+#         database — see db.Dockerfile/init-n8n.sh).
+# mssql:  gated behind the "mssql" profile too (llm_mssql testing only, most
+#         devs won't need it):
+#           docker compose -f docker-compose.yml -f docker-compose.integrations.yml --profile mssql up
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:-stable}
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-UTC}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=db
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=${DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD}
+      - DB_POSTGRESDB_SSL_ENABLED=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # For testing llm_mssql locally against a real SQL Server instance.
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:?set a strong password in .env}
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    profiles:
+      - mssql
+
+volumes:
+  n8n_data:
+  mssql_data:
