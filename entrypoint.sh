@@ -81,7 +81,7 @@ _enterprise_path=""
 if [ -d "/mnt/extra-addons/enterprise/odoo/addons" ]; then
     _enterprise_path=",/mnt/extra-addons/enterprise/odoo/addons"
 fi
-export ODOO_ADDONS_PATH="/usr/lib/python3/dist-packages/odoo/addons,/var/lib/odoo/addons/18.0${_enterprise_path}${_addons_paths:+,${_addons_paths}}"
+export ODOO_ADDONS_PATH="/usr/lib/python3/dist-packages/odoo/addons,/var/lib/odoo/addons/17.0${_enterprise_path}${_addons_paths:+,${_addons_paths}}"
 unset _addons_paths _dir _subdir
 
 # Worker count depends on dev vs prod mode

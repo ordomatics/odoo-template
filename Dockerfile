@@ -1,12 +1,12 @@
-# Generic Odoo 18.0 base image — deployment tooling (entrypoint, module-setup
+# Generic Odoo 17.0 base image — deployment tooling (entrypoint, module-setup
 # script, config templating) baked in, but NO proprietary addons. Published
-# as registry.gitlab.com/ordomatics/odoo:18.0 (public). Used as:
+# as registry.gitlab.com/ordomatics/odoo:17.0 (public). Used as:
 #   1. The seed image for every new Tier2 client's first onboarding, before
 #      their own CI has produced a real image.
 #   2. The FROM base for client forks of this template (see main/dev
 #      branches) — so a client's own image never depends on Ordomatics's
 #      own internal, proprietary image (ordomatics/clients/ordomatics).
-FROM odoo:18.0
+FROM odoo:17.0
 
 USER root
 
@@ -27,7 +27,7 @@ RUN apt-get update && \
     apt-get update && \
     ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 && \
     rm -rf /var/lib/apt/lists/* && \
-    mkdir -p /var/log/odoo /mnt/extra-addons /var/lib/odoo/addons/18.0 && \
+    mkdir -p /var/log/odoo /mnt/extra-addons /var/lib/odoo/addons/17.0 && \
     chown -R odoo:odoo /var/log/odoo /mnt /var/lib/odoo && \
     chmod 755 /var/log/odoo
 

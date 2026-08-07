@@ -7,7 +7,7 @@ name: Build generic base image
 
 on:
   push:
-    branches: [18.0]
+    branches: [17.0]
 
 jobs:
   build:
@@ -35,9 +35,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            registry.gitlab.com/ordomatics/odoo:18.0
-            registry.gitlab.com/ordomatics/odoo:latest
+          tags: registry.gitlab.com/ordomatics/odoo:17.0
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -45,4 +43,4 @@ jobs:
       - name: Summary
         run: |
           echo "### Base image published" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`registry.gitlab.com/ordomatics/odoo:18.0\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`registry.gitlab.com/ordomatics/odoo:17.0\`" >> $GITHUB_STEP_SUMMARY
