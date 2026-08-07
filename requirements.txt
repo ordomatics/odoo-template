@@ -1,4 +1,11 @@
-# Client-specific Python packages only.
-# Platform packages (fastapi, anthropic, openai, etc.) are already in the base image.
-# Add only packages your custom addons need that are not in the platform image.
+# Generic base image (ordomatics/odoo). Client forks (main/dev branches of
+# this template) add their own deps on top for their own custom addons.
 requests>=2.25.0
+# llm_thread
+emoji
+markdown2
+# llm_tool, llm_mcp_server
+pydantic>=2.0.0
+mcp
+# llm_mssql (needs Microsoft ODBC Driver 18 at the OS level too — see Dockerfile)
+pyodbc

@@ -1,7 +1,13 @@
-[submodule "addons/enterprise"]
-	path = addons/enterprise
-	url = https://github.com/your-org/enterprise.git
-	sparseCheckout = odoo/addons/*
-[submodule "addons/client-name"]
-	path = addons/client-name
-	url = https://github.com/your-org/client-name.git
+[submodule "addons/ordomatics"]
+	path = addons/ordomatics
+	url = https://github.com/ordomatics/ordomatics.git
+	sparseCheckout = session_redis/* bus_keepalive/* n8n_connector/* n8n_crm/* llm_mssql/* llm_n8n/*
+[submodule "addons/odoo-llm"]
+	path = addons/odoo-llm
+	url = https://github.com/moctarjallo/odoo-llm.git
+	sparseCheckout = llm/* llm_thread/* llm_tool/* llm_assistant/* llm_mcp_server/* web_json_editor/*
+[submodule "addons/oca/queue"]
+	path = addons/oca/queue
+	url = https://github.com/moctarjallo/queue.git
+	branch = 18.0
+	sparseCheckout = queue_job/*
