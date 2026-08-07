@@ -5,6 +5,8 @@ public Odoo 18.0 image with Ordomatics's deployment tooling baked in
 (entrypoint, module-setup script, config templating) but **no proprietary
 addons**. It is not itself a client template — see `main`/`dev` on this
 same repo for that (the "Use this template" branches, `FROM` this image).
+The current default/`:latest` version is `19.0` — pin this specific tag if
+you need Odoo 18.0.
 
 Used as:
 1. The seed image for every new Tier2 client's first onboarding, before
@@ -33,10 +35,18 @@ out, only a GitLab deploy token to push the built image.
 1. Branch from `18.0`.
 2. `Dockerfile`: change `FROM odoo:18.0` to the target version.
 3. `entrypoint.sh`: change `/var/lib/odoo/addons/18.0` to the target version.
-4. `.github/workflows/build-base-image.yml`: change the trigger branch and
-   both tags (`ordomatics/odoo:18.0` → `ordomatics/odoo:<version>`) — do
-   *not* push `:latest` from more than one version branch.
-5. Push — CI builds and publishes automatically.
+4. `.gitmodules`: point `addons/oca/queue` at that version's OCA/queue
+   branch (falls back to upstream `OCA/queue` if a personal fork lacks
+   that branch — confirm with `git ls-remote --heads`), then re-point the
+   submodule checkout itself and stage it (`git submodule update --remote`
+   only tracks the `.gitmodules` branch field on an explicit `--remote`
+   update — a plain `git submodule update` keeps the old commit).
+5. `.github/workflows/ci.yaml`: change the trigger branch and the tag
+   (`ordomatics/odoo:18.0` → `ordomatics/odoo:<version>`) — do *not* push
+   `:latest` from more than one version branch. If the new branch is
+   meant to become the new default, move the `:latest` tag onto it here
+   and remove it from whichever branch owned it before.
+6. Push — CI builds and publishes automatically.
 
 ## Local development
 
@@ -73,7 +83,7 @@ Access Odoo at `http://localhost:8069` (direct) or `http://localhost:8070`
 ```
 .
 ├── .github/workflows/
-│   └── build-base-image.yml    # Builds + pushes ordomatics/odoo:18.0 on push
+│   └── ci.yaml                  # Builds + pushes ordomatics/odoo:18.0 on push
 ├── addons/                     # Submodules, sparse-checked-out (see .gitmodules)
 │   ├── ordomatics/              # session_redis, bus_keepalive, n8n_*, llm_mssql, llm_n8n
 │   ├── odoo-llm/                 # llm, llm_tool, llm_thread, llm_mcp_server, llm_assistant, web_json_editor
