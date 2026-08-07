@@ -17,6 +17,11 @@ On GitHub: click **Use this template** → **Create a new repository**.
 - Make it **private**
 - Create both a `main` and a `dev` branch
 
+You do **not** need to pick a branch of this template repo based on which
+Odoo version you want — always create from `main`. Odoo version is a
+build-time setting (see step 4a below), not a branch choice, so it can be
+changed later without recreating your repo.
+
 ### 2. Configure repo variables
 
 In your repo: **Settings → Secrets and variables → Actions → Variables**
@@ -35,21 +40,29 @@ In your repo: **Settings → Secrets and variables → Actions → Secrets**
 |---|---|---|
 | `GITLAB_USERNAME` | Registry deploy token username | Ordomatics platform team |
 | `GITLAB_ACCESS_TOKEN` | Registry deploy token (read/write registry) | Ordomatics platform team |
-| `HELM_GITLAB_TOKEN` | GitLab token with helm repo write access | Ordomatics platform team |
-| `IMAGE_ACCESS_TOKEN` | Read-only token to pull the platform base image | Ordomatics platform team |
+| `GITLAB_DEPLOY_SSH_KEY` | SSH deploy key (push access to your `ordomatics/clients/<slug>` deploy repo, for the `values.<env>.yaml` image-tag bump) | Ordomatics platform team |
 | `GIT_TOKEN` | GitHub PAT to check out private submodules | Your org |
 
-`GITLAB_USERNAME` and `GITLAB_ACCESS_TOKEN` are generated automatically when the platform team
-runs the onboarding script. They will be handed to you after onboarding.
+`GITLAB_USERNAME`, `GITLAB_ACCESS_TOKEN`, and `GITLAB_DEPLOY_SSH_KEY` are generated automatically
+by the `onboard-tier2` Backstage template and shown once in the onboarding task's output.
 
 `GIT_TOKEN` must be a GitHub personal access token (classic) with `repo` scope, able to read
-all private submodule repos listed in `.gitmodules`.
+all private submodule repos listed in `.gitmodules`. No credential is needed to pull the
+platform base image (`registry.gitlab.com/ordomatics/odoo`) — it's a public image.
 
 ### 4. Populate addons/
 
 The `Dockerfile` copies `addons/` into the image. This directory is for
-**client-specific custom addons only** — platform modules (whatsapp, billing, llm suite,
-OCA, enterprise) are already baked into the base image and do not need to be listed here.
+**your own custom addons only**. The base image
+(`registry.gitlab.com/ordomatics/odoo`) already includes a generic module
+set — Odoo core + `crm`, `queue_job`, the LLM tool/assistant chain
+(`llm`, `llm_tool`, `llm_thread`, `llm_mcp_server`, `llm_assistant`,
+`web_json_editor` — not the full LLM suite, no chat/generation modules),
+and `n8n_connector`/`n8n_crm`/`llm_mssql`/`llm_n8n` — see the base image's
+own README (`odoo-template`'s `18.0`/`19.0`/etc. branches) for the exact
+list. It does **not** include any Ordomatics-proprietary modules
+(WhatsApp, billing, the full LLM suite) — those are Ordomatics's own
+internal addons, not part of this public template.
 
 Each addon is a Git submodule pointing to its own repo. The template includes `addons/enterprise`
 as an example — replace the URL with your actual enterprise repo and add any other custom addons:
@@ -68,7 +81,24 @@ git add addons/.keep
 git commit -m "chore: placeholder for custom addons"
 ```
 
-Add your client module name at the bottom of `modules.cfg` (after `ordomatics`). The file ships with the full platform module list — do not remove existing entries.
+Add your own module name(s) at the bottom of `modules.cfg`, after the platform base list — do
+not remove the existing entries, they're already baked into the base image and this file is
+what tells the deploy pipeline to install/upgrade them.
+
+### 4a. Pick your Odoo version (optional)
+
+Defaults to whatever `registry.gitlab.com/ordomatics/odoo:latest` currently points at. To pin a
+specific version instead (`17.0`, `18.0`, `19.0`, ...), set `PLATFORM_TAG` in the `env:` block at
+the top of `.github/workflows/ci.yaml`:
+
+```yaml
+env:
+  PLATFORM_TAG: "18.0"
+```
+
+This changes both which base image CI pulls/builds against and which `ARG PLATFORM_TAG` value
+gets passed into the `Dockerfile`'s `FROM`. No need to recreate your repo or switch branches to
+change version — just edit this one line and push.
 
 ### 5. Configure odoo.conf.template
 
