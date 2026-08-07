@@ -35,7 +35,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: registry.gitlab.com/ordomatics/odoo:19.0
+          tags: |
+            registry.gitlab.com/ordomatics/odoo:19.0
+            registry.gitlab.com/ordomatics/odoo:latest
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
