@@ -1,9 +1,16 @@
 name: Build generic base image
 
 # Builds ordomatics/odoo:<version> from this branch (one branch per Odoo
-# version — 17.0, 18.0, 19.0, etc.) and pushes to the public GitLab
+# version — 17.0, 18.0, 19.0, etc.) and pushes to the public Docker Hub
 # registry. No GIT_TOKEN needed: every submodule this branch uses
 # (ordomatics/ordomatics, moctarjallo/odoo-llm, moctarjallo/queue) is public.
+#
+# Docker Hub, not GitLab: GitLab's container registry rejects anonymous
+# pulls even for a public project (confirmed live 2026-08-07 -- every
+# consumer of this image would need a GitLab credential just to pull it,
+# defeating the point of a public base image). Docker Hub supports true
+# anonymous pulls, same as the official odoo:<version> image this is built
+# FROM.
 
 on:
   push:
@@ -22,12 +29,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to registry
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: registry.gitlab.com
-          username: ${{ secrets.GITLAB_ODOO_REGISTRY_USERNAME }}
-          password: ${{ secrets.GITLAB_ODOO_REGISTRY_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -36,8 +42,8 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            registry.gitlab.com/ordomatics/odoo:19.0
-            registry.gitlab.com/ordomatics/odoo:latest
+            ordomatics/odoo:19.0
+            ordomatics/odoo:latest
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -45,4 +51,4 @@ jobs:
       - name: Summary
         run: |
           echo "### Base image published" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`registry.gitlab.com/ordomatics/odoo:19.0\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`ordomatics/odoo:19.0\`" >> $GITHUB_STEP_SUMMARY
