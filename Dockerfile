@@ -41,8 +41,14 @@ COPY ./requirements.txt /tmp/requirements.txt
 # fail with "Cannot uninstall ... RECORD file not found". Confirmed live
 # 2026-08-07 hitting this one package at a time; --ignore-installed sidesteps
 # all of them at once instead of allowlisting each by name.
+# --break-system-packages (PEP 668) is only understood by pip 23.0.1+ — this
+# image's base OS (Ubuntu 22.04 for odoo:17.0's pip 22.0.2, Debian 12 for
+# odoo:18.0/19.0's newer pip) determines whether it's needed or even valid,
+# so detect support instead of hardcoding it.
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip3 install --break-system-packages --ignore-installed -r /tmp/requirements.txt
+    PIP_BREAK_FLAG=""; \
+    pip3 install --help 2>&1 | grep -q -- "--break-system-packages" && PIP_BREAK_FLAG="--break-system-packages"; \
+    pip3 install $PIP_BREAK_FLAG --ignore-installed -r /tmp/requirements.txt
 
 # addons/ mirrors /mnt/extra-addons/ — sparse-checked-out per .gitmodules'
 # sparseCheckout keys (see scripts/setup-submodules.sh, applied by CI before
