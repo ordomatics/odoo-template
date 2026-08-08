@@ -1,0 +1,34 @@
+name: Validate Dockerfile builds
+
+# Build-only sanity check for this repo's own Dockerfile -- no registry
+# push, no CLIENT_SLUG/EXTERNAL_* vars needed (unlike ci.yaml, which
+# requires those and is meant for a real onboarded client's deploy
+# pipeline). Exists because odoo-template itself has no real client vars
+# set, so ci.yaml's build job never actually runs here -- this is what
+# proves the Dockerfile builds on every push. If you forked this template,
+# your own ci.yaml already builds+pushes on the same triggers, making this
+# redundant; feel free to delete it.
+
+on:
+  push:
+    branches: [main, dev]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          platforms: linux/amd64
