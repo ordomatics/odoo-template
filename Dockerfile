@@ -1,6 +1,6 @@
 # Generic Odoo 19.0 base image — deployment tooling (entrypoint, module-setup
 # script, config templating) baked in, but NO proprietary addons. Published
-# as registry.gitlab.com/ordomatics/odoo:19.0 (public). Used as:
+# as ordomatics/odoo:19.0 on Docker Hub (public). Used as:
 #   1. The seed image for every new Tier2 client's first onboarding, before
 #      their own CI has produced a real image.
 #   2. The FROM base for client forks of this template (see main/dev
