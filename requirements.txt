@@ -1,26 +1,46 @@
-# Generic base image (ordomatics/odoo). Client forks (main/dev branches of
-# this template) add their own deps on top for their own custom addons.
-#
-# pyOpenSSL: needed by Odoo core itself, not any addon here -- base's own
-# ir_mail_server.py does `import OpenSSL`. Ships with the base odoo image
-# at whatever version it was built with; other deps below (mcp, etc.) pull
-# in cryptography unpinned, resolving to latest at build time. An old
-# pyOpenSSL against a too-new cryptography breaks with "module 'lib' has
-# no attribute 'GEN_EMAIL'" -- confirmed live 2026-08-08 (setup-modules-only
-# crash-looping on a freshly seeded, freshly onboarded client, same bug
-# already fixed in ordomatics/odoo's own requirements.txt but never
-# ported to this generic base image branch).
-pyOpenSSL>=24.2.1
+python-dotenv
+fastapi>=0.110.0
+uvicorn
+python-multipart
+ujson
+a2wsgi>=1.10.6
+parse-accept-language
+packaging
+aiohttp
+aiofiles
 requests>=2.25.0
-# llm_thread
+pandas>=2.2
+openpyxl>=3.1
+pyOpenSSL>=24.2.1
+# odoo-llm core
+PyMuPDF
+anthropic
+claude-agent-sdk
 emoji
-markdown2
-# llm_tool, llm_mcp_server
-pydantic>=2.0.0
-mcp
-# llm_mssql (needs Microsoft ODBC Driver 18 at the OS level too — see Dockerfile)
-pyodbc
-# llm_assistant (jinja2/pyyaml are already present in odoo:17.0/18.0's base
-# Python env; jsonschema confirmed missing on both 2026-08-07 — the only
-# one actually needed here)
+jinja2
+jsonref
 jsonschema
+markdown2
+markdownify
+mcp
+nltk
+numpy
+openai
+pgvector
+pydantic>=2.0.0
+pyyaml
+# LLM provider clients — pre-installed so any provider module can be activated without a rebuild
+chromadb-client
+fal_client
+letta-client
+llama_index
+mistralai
+ollama
+qdrant-client
+replicate
+# OCA storage (fs_attachment_s3)
+fsspec[s3]
+# WAV→MP3 conversion for WhatsApp audio (replaces ffmpeg)
+lameenc
+# MSSQL / SQL Server (llm_mssql — ODBC Driver 18 installed in Dockerfile)
+pyodbc
