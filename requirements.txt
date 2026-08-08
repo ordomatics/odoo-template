@@ -1,5 +1,16 @@
 # Generic base image (ordomatics/odoo). Client forks (main/dev branches of
 # this template) add their own deps on top for their own custom addons.
+#
+# pyOpenSSL: needed by Odoo core itself, not any addon here -- base's own
+# ir_mail_server.py does `import OpenSSL`. Ships with the base odoo image
+# at whatever version it was built with; other deps below (mcp, etc.) pull
+# in cryptography unpinned, resolving to latest at build time. An old
+# pyOpenSSL against a too-new cryptography breaks with "module 'lib' has
+# no attribute 'GEN_EMAIL'" -- confirmed live 2026-08-08 (setup-modules-only
+# crash-looping on a freshly seeded, freshly onboarded client, same bug
+# already fixed in ordomatics/odoo's own requirements.txt but never
+# ported to this generic base image branch).
+pyOpenSSL>=24.2.1
 requests>=2.25.0
 # llm_thread
 emoji
