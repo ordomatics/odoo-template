@@ -38,9 +38,8 @@ ENV LANG=en_US.UTF-8 \
 COPY ./requirements.txt /tmp/requirements.txt
 # --ignore-installed: several debian-packaged Python libs (typing_extensions,
 # idna, etc.) ship without a pip RECORD file, which makes a normal upgrade
-# fail with "Cannot uninstall ... RECORD file not found". Confirmed live
-# 2026-08-07 hitting this one package at a time; --ignore-installed sidesteps
-# all of them at once instead of allowlisting each by name.
+# fail with "Cannot uninstall ... RECORD file not found". Sidesteps all of
+# them at once instead of allowlisting each by name.
 # --break-system-packages (PEP 668) is only understood by pip 23.0.1+ — this
 # image's base OS (Ubuntu 22.04 for odoo:17.0's pip 22.0.2, Debian 12 for
 # odoo:18.0/19.0's newer pip) determines whether it's needed or even valid,
