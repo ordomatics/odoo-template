@@ -1,6 +1,6 @@
 # ordomatics/odoo — generic base image (this branch: 19.0, current `:latest`)
 
-This branch builds `registry.gitlab.com/ordomatics/odoo:19.0` — a generic,
+This branch builds `ordomatics/odoo:19.0` (Docker Hub) — a generic,
 public Odoo 19.0 image with Ordomatics's deployment tooling baked in
 (entrypoint, module-setup script, config templating) but **no proprietary
 addons**. It is not itself a client template — see `main`/`dev` on this
@@ -29,7 +29,7 @@ Used as:
 
 All submodule sources (`ordomatics/ordomatics`, `moctarjallo/odoo-llm`,
 `OCA/queue`) are public — CI needs no GitHub token to check them out, only
-a GitLab deploy token to push the built image.
+a Docker Hub access token to push the built image.
 
 ## Adding a version branch (e.g. 17.0, 18.0)
 
