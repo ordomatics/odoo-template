@@ -1,10 +1,12 @@
-# PLATFORM_TAG picks which Odoo version to build on (registry.gitlab.com/
-# ordomatics/odoo:17.0, :18.0, :19.0, ...) — defaults to :latest (the
-# platform's current default version). Override per-build via the
-# platform-tag input to build-client-image.yml in your own ci.yaml, no
-# branch-picking or repo-recreation needed to change version.
+# PLATFORM_TAG picks which Odoo version to build on
+# (docker.io/ordomatics/odoo:17.0, :18.0, :19.0, ...) — defaults to
+# :latest (the platform's current default version). Override per-build via
+# the platform-tag input to build-client-image.yml in your own ci.yaml, no
+# branch-picking or repo-recreation needed to change version. Docker Hub,
+# not GitLab: GitLab's container registry rejects anonymous pulls even for
+# a public project.
 ARG PLATFORM_TAG=latest
-FROM registry.gitlab.com/ordomatics/odoo:${PLATFORM_TAG}
+FROM ordomatics/odoo:${PLATFORM_TAG}
 
 USER root
 

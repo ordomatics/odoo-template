@@ -48,13 +48,13 @@ by the `onboard-tier2` Backstage template and shown once in the onboarding task'
 
 `GIT_TOKEN` must be a GitHub personal access token (classic) with `repo` scope, able to read
 all private submodule repos listed in `.gitmodules`. No credential is needed to pull the
-platform base image (`registry.gitlab.com/ordomatics/odoo`) — it's a public image.
+platform base image (`ordomatics/odoo` on Docker Hub) — it's a public image.
 
 ### 4. Populate addons/
 
 The `Dockerfile` copies `addons/` into the image. This directory is for
 **your own custom addons only**. The base image
-(`registry.gitlab.com/ordomatics/odoo`) already includes a generic module
+(`ordomatics/odoo` on Docker Hub) already includes a generic module
 set — Odoo core + `crm`, `queue_job`, the LLM tool/assistant chain
 (`llm`, `llm_tool`, `llm_thread`, `llm_mcp_server`, `llm_assistant`,
 `web_json_editor` — not the full LLM suite, no chat/generation modules),
@@ -87,7 +87,7 @@ what tells the deploy pipeline to install/upgrade them.
 
 ### 4a. Pick your Odoo version (optional)
 
-Defaults to whatever `registry.gitlab.com/ordomatics/odoo:latest` currently points at. To pin a
+Defaults to whatever `ordomatics/odoo:latest` currently points at. To pin a
 specific version instead (`17.0`, `18.0`, `19.0`, ...), set `PLATFORM_TAG` in the `env:` block at
 the top of `.github/workflows/ci.yaml`:
 
