@@ -135,7 +135,11 @@ single-database routing per deployment.
 ## CI/CD Pipeline
 
 The pipeline is defined in `.github/workflows/ci.yaml`. It follows a promotion model:
-images are built once on `dev` and promoted through environments by retagging.
+images are built once on `dev` and promoted through environments by retagging. `ci.yaml`
+requires `CLIENT_SLUG`/`EXTERNAL_*` repo variables to be set (see step 2 above) — a second,
+always-on workflow, `.github/workflows/validate-build.yml`, does a build-only sanity check
+of the Dockerfile with no variables or secrets needed at all, so a broken Dockerfile still
+fails CI even before those variables are configured.
 
 ```
 dev branch push
@@ -233,7 +237,8 @@ docker compose up -d
 │   ├── actions/
 │   │   └── deploy-helm/        # Reusable action: update helm values + push
 │   └── workflows/
-│       └── ci.yaml             # Multi-env CI/CD pipeline
+│       ├── ci.yaml             # Multi-env CI/CD pipeline
+│       └── validate-build.yml  # Build-only sanity check, no vars/secrets needed
 ├── addons/                     # Client-specific addon submodules (mounted as /mnt/extra-addons)
 │   └── ordomatics/              # Working example (real, public) — replace with your own addons
 ├── cloudflared/                # Cloudflare Tunnel config (activate with --profile tunnel)
