@@ -64,8 +64,19 @@ list. It does **not** include any Ordomatics-proprietary modules
 (WhatsApp, billing, the full LLM suite) — those are Ordomatics's own
 internal addons, not part of this public template.
 
-Each addon is a Git submodule pointing to its own repo. The template includes `addons/enterprise`
-as an example — replace the URL with your actual enterprise repo and add any other custom addons:
+Each addon is a Git submodule pointing to its own repo. The template includes `addons/ordomatics`
+(Ordomatics's own public generic-modules repo) as a working example so a fresh clone builds
+out of the box with no fake/placeholder URLs — replace it with your own custom addons (it's
+redundant with the base image, which already includes these same modules):
+
+```bash
+git rm addons/ordomatics
+git submodule add https://github.com/your-org/your-addon.git addons/your-addon
+git add .gitmodules addons/your-addon
+git commit -m "feat: replace example submodule with your-addon"
+```
+
+Or just add your own addons alongside it:
 
 ```bash
 git submodule add https://github.com/your-org/your-addon.git addons/your-addon
@@ -223,8 +234,8 @@ docker compose up -d
 │   │   └── deploy-helm/        # Reusable action: update helm values + push
 │   └── workflows/
 │       └── ci.yaml             # Multi-env CI/CD pipeline
-├── addons/                     # Client-specific addon submodules (mounted as /mnt/extra-addons/client)
-│   └── enterprise/             # Example — replace with your actual enterprise repo
+├── addons/                     # Client-specific addon submodules (mounted as /mnt/extra-addons)
+│   └── ordomatics/              # Working example (real, public) — replace with your own addons
 ├── cloudflared/                # Cloudflare Tunnel config (activate with --profile tunnel)
 │   ├── config.yml
 │   └── credentials.json        # Never commit — listed in .gitignore
