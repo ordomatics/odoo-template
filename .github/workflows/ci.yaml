@@ -2,15 +2,13 @@ name: Build generic base image
 
 # Builds ordomatics/odoo:<version> from this branch (one branch per Odoo
 # version — 17.0, 18.0, 19.0, etc.) and pushes to the public Docker Hub
-# registry. No GIT_TOKEN needed: every submodule this branch uses
-# (ordomatics/ordomatics, moctarjallo/odoo-llm, moctarjallo/queue) is public.
+# registry.
 #
 # Docker Hub, not GitLab: GitLab's container registry rejects anonymous
-# pulls even for a public project (confirmed live 2026-08-07 -- every
-# consumer of this image would need a GitLab credential just to pull it,
-# defeating the point of a public base image). Docker Hub supports true
-# anonymous pulls, same as the official odoo:<version> image this is built
-# FROM.
+# pulls even for a public project — every consumer of this image would
+# need a GitLab credential just to pull it, defeating the point of a
+# public base image. Docker Hub supports true anonymous pulls, same as
+# the official odoo:<version> image this is built FROM.
 
 on:
   push:
@@ -25,6 +23,14 @@ jobs:
 
       - name: Initialize submodules
         run: ./scripts/setup-submodules.sh
+
+      - name: Fetch private infra modules
+        run: |
+          git clone --depth 1 https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/ordomatics/infra.git /tmp/infra-clone
+          mkdir -p addons/infra
+          cp -r /tmp/infra-clone/bus_keepalive addons/infra/
+          cp -r /tmp/infra-clone/session_redis addons/infra/
+          rm -rf /tmp/infra-clone
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
