@@ -12,6 +12,9 @@ logs/
 # Odoo config (generated at runtime)
 config/odoo.conf
 
+# Populated by CI, not committed
+addons/infra/
+
 # Python
 __pycache__/
 *.py[cod]

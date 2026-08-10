@@ -1,7 +1,7 @@
 [submodule "addons/ordomatics"]
 	path = addons/ordomatics
 	url = https://github.com/ordomatics/ordomatics.git
-	sparseCheckout = session_redis/* bus_keepalive/* n8n_connector/* n8n_crm/* llm_mssql/* llm_n8n/*
+	sparseCheckout = n8n_connector/* n8n_crm/* llm_mssql/* llm_n8n/*
 [submodule "addons/odoo-llm"]
 	path = addons/odoo-llm
 	url = https://github.com/moctarjallo/odoo-llm.git
