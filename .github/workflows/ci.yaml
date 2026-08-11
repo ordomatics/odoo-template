@@ -26,11 +26,8 @@ jobs:
 
       - name: Fetch private infra modules
         run: |
-          git clone --depth 1 https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/ordomatics/infra.git /tmp/infra-clone
-          mkdir -p addons/infra
-          cp -r /tmp/infra-clone/bus_keepalive addons/infra/
-          cp -r /tmp/infra-clone/session_redis addons/infra/
-          rm -rf /tmp/infra-clone
+          git clone --depth 1 https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/ordomatics/infra.git addons/infra
+          rm -rf addons/infra/.git
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
