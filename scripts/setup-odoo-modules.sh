@@ -94,24 +94,53 @@ module_installed() {
 }
 
 run_ordomatics_bootstrap() {
-    if ! module_installed "ordomatics_setup"; then
+    if ! module_installed "ordomatics"; then
         return 0
     fi
 
-    echo "🧩 Running ordomatics_setup bootstrap..."
+    echo "🧩 Running ordomatics bootstrap..."
     odoo_shell_run <<'EOF'
-from odoo.addons.ordomatics_setup.hooks import run_bootstrap
+from odoo.addons.ordomatics.hooks import run_bootstrap
 
 run_bootstrap(env)
 env.cr.commit()
 EOF
-    echo "✅ ordomatics_setup bootstrap complete"
+    echo "✅ ordomatics bootstrap complete"
+}
+
+# Auto-discovered addons with a hooks.py (installed + bootstrapped below).
+INFRA_ADDONS_DIR="${INFRA_ADDONS_DIR:-/mnt/extra-addons/infra}"
+
+scan_infra_modules() {
+    [ -d "$INFRA_ADDONS_DIR" ] || return 0
+    local dir
+    for dir in "$INFRA_ADDONS_DIR"/*/; do
+        [ -f "${dir}hooks.py" ] && basename "$dir"
+    done
+}
+
+run_infra_bootstraps() {
+    local mod
+    while read -r mod; do
+        [ -z "$mod" ] && continue
+        module_installed "$mod" || continue
+        echo "🧩 Running $mod bootstrap..."
+        odoo_shell_run <<EOF
+from odoo.addons.${mod}.hooks import run_bootstrap
+
+run_bootstrap(env)
+env.cr.commit()
+EOF
+        echo "✅ $mod bootstrap complete"
+    done < <(scan_infra_modules)
 }
 
 # ─── Main ───────────────────────────────────────────────────────────────────
 
 main() {
-    local all_modules=("${ALL_MODULES[@]}")
+    local infra_modules=()
+    mapfile -t infra_modules < <(scan_infra_modules)
+    local all_modules=("${ALL_MODULES[@]}" "${infra_modules[@]}")
 
     echo "🚀 Starting Odoo module setup..."
     echo "📋 Database: $DB_NAME @ $DB_HOST:$DB_PORT"
@@ -179,6 +208,7 @@ main() {
 
     odoo_run "${args[@]}" --log-level=info
     run_ordomatics_bootstrap
+    run_infra_bootstraps
 
     echo "✨ Module setup complete!"
 }
