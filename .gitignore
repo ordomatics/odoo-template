@@ -14,6 +14,7 @@ config/odoo.conf
 
 # Populated by CI, not committed
 addons/infra/
+addons/storage/
 
 # Python
 __pycache__/
