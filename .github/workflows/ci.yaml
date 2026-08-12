@@ -29,6 +29,13 @@ jobs:
           git clone --depth 1 https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/ordomatics/infra.git addons/infra
           rm -rf addons/infra/.git
 
+      # Public mirror of OCA/storage — provides fs_attachment_s3, a
+      # dependency of one of the infra addons above.
+      - name: Fetch storage modules
+        run: |
+          git clone --depth 1 --branch 19.0 https://github.com/ordomatics/storage.git addons/storage
+          rm -rf addons/storage/.git
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
