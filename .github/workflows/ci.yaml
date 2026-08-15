@@ -36,6 +36,13 @@ jobs:
           git clone --depth 1 --branch 19.0 https://github.com/ordomatics/storage.git addons/storage
           rm -rf addons/storage/.git
 
+      # Public mirror of OCA/server-env — provides server_environment, a
+      # dependency of fs_storage from the storage clone above.
+      - name: Fetch server-env modules
+        run: |
+          git clone --depth 1 --branch 19.0 https://github.com/ordomatics/server-env.git addons/server-env
+          rm -rf addons/server-env/.git
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
