@@ -3,13 +3,16 @@ name: CI/CD Pipeline
 # Client promotion pipeline — image built on dev, promoted through envs by retagging.
 #
 # Required GitHub repo variables (Settings → Secrets and variables → Actions → Variables):
-#   CLIENT_SLUG               e.g. smartacus
+#   CLIENT_SLUG               e.g. smartacus — labels and ArgoCD links only
+#   APP_DOMAIN                zone this deployment is served on; defaults to
+#                             ordomatics.com. A client on their own domain sets it.
 #   EXTERNAL_GITLAB_REGISTRY  e.g. registry.gitlab.com
-#   EXTERNAL_PATH             e.g. ordomatics/clients/smartacus
+#   EXTERNAL_PATH             deploy repo AND registry path, e.g. ordomatics/clients/smartacus/odoo
 #
-# Required GitHub repo secrets (all issued by the onboard-tier2 Backstage
-# template, scoped to just this client's own ordomatics/clients/<slug>
-# deploy repo — not a personal account's broad PAT):
+# Required GitHub repo secrets. All of these, and the variables above, are
+# written by the configure-app-ci Backstage operation via the Ordomatics
+# Platform CI GitHub App; the credentials are scoped to this client's own
+# deploy repo, never a personal PAT.
 #   GITLAB_USERNAME           Deploy token username (registry push)
 #   GITLAB_ACCESS_TOKEN       Deploy token (write_registry scope)
 #   GITLAB_DEPLOY_SSH_KEY     SSH deploy key private key (can_push, values.yaml commit)
@@ -116,7 +119,7 @@ jobs:
       cancel-in-progress: false
     environment:
       name: test
-      url: https://${{ vars.CLIENT_SLUG }}.test.ordomatics.com
+      url: https://odoo.test.${{ vars.APP_DOMAIN || 'ordomatics.com' }}
     env:
       IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_PATH }}
       DB_HOST: localhost
@@ -198,7 +201,7 @@ jobs:
       - name: Update helm values
         uses: ./.github/actions/deploy-helm
         with:
-          deploy-repo: ordomatics/clients/${{ vars.CLIENT_SLUG }}
+          deploy-repo: ${{ vars.EXTERNAL_PATH }}
           values-file: values.test.yaml
           image-tag: ${{ steps.tag.outputs.tag }}
           commit-message: "ci: promote ${{ vars.CLIENT_SLUG }}@${{ steps.tag.outputs.tag }}"
@@ -220,7 +223,7 @@ jobs:
       cancel-in-progress: false
     environment:
       name: staging
-      url: https://${{ vars.CLIENT_SLUG }}.staging.ordomatics.com
+      url: https://odoo.staging.${{ vars.APP_DOMAIN || 'ordomatics.com' }}
     env:
       IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_PATH }}
       DB_HOST: localhost
@@ -302,7 +305,7 @@ jobs:
       - name: Update helm values
         uses: ./.github/actions/deploy-helm
         with:
-          deploy-repo: ordomatics/clients/${{ vars.CLIENT_SLUG }}
+          deploy-repo: ${{ vars.EXTERNAL_PATH }}
           values-file: values.staging.yaml
           image-tag: ${{ steps.tag.outputs.tag }}
           commit-message: "ci: promote ${{ vars.CLIENT_SLUG }}@${{ steps.tag.outputs.tag }} to staging"
@@ -324,7 +327,7 @@ jobs:
       cancel-in-progress: false
     environment:
       name: production
-      url: https://${{ vars.CLIENT_SLUG }}.ordomatics.com
+      url: https://odoo.${{ vars.APP_DOMAIN || 'ordomatics.com' }}
     env:
       IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_PATH }}
     steps:
@@ -370,7 +373,7 @@ jobs:
       - name: Update helm values
         uses: ./.github/actions/deploy-helm
         with:
-          deploy-repo: ordomatics/clients/${{ vars.CLIENT_SLUG }}
+          deploy-repo: ${{ vars.EXTERNAL_PATH }}
           values-file: values.prod.yaml
           image-tag: ${{ steps.tags.outputs.primary }}
           commit-message: "ci: release ${{ vars.CLIENT_SLUG }}@${{ steps.tags.outputs.primary }}"
