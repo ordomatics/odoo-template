@@ -24,9 +24,11 @@ jobs:
       - name: Initialize submodules
         run: ./scripts/setup-submodules.sh
 
-      - name: Fetch private infra modules
+      # Public since 2026-08-17 — no credential, so a client's fork needs no
+      # GitHub token of ours at all.
+      - name: Fetch infra modules
         run: |
-          git clone --depth 1 https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/ordomatics/infra.git addons/infra
+          git clone --depth 1 https://github.com/ordomatics/infra.git addons/infra
           rm -rf addons/infra/.git
 
       # Public mirror of OCA/storage — provides fs_attachment_s3, a
