@@ -125,8 +125,10 @@ else
     chown odoo:odoo /etc/odoo/odoo.conf
     chmod 644 /etc/odoo/odoo.conf
 
+    # Redacted: this lands in pod logs, which are readable by anyone with
+    # kubectl and by any log aggregator downstream.
     echo "Generated config:"
-    cat /etc/odoo/odoo.conf
+    sed -E 's/^(admin_passwd|db_password)([[:space:]]*=[[:space:]]*).*/\1\2***REDACTED***/' /etc/odoo/odoo.conf
 fi
 
 # ============= Module Setup Integration =============
