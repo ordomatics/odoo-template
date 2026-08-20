@@ -109,13 +109,18 @@ EOF
 }
 
 # Auto-discovered addons with a hooks.py (installed + bootstrapped below).
-INFRA_ADDONS_DIR="${INFRA_ADDONS_DIR:-/mnt/extra-addons/infra}"
+# Deliberately a list, not just infra/: the same bootstrap-on-every-deploy
+# pattern (e.g. the asterisk module configuring sip.provider from env vars)
+# lives wherever its dependency naturally lives, not always under infra/.
+INFRA_ADDONS_DIRS="${INFRA_ADDONS_DIRS:-/mnt/extra-addons/infra /mnt/extra-addons/telephony}"
 
 scan_infra_modules() {
-    [ -d "$INFRA_ADDONS_DIR" ] || return 0
-    local dir
-    for dir in "$INFRA_ADDONS_DIR"/*/; do
-        [ -f "${dir}hooks.py" ] && basename "$dir"
+    local base dir
+    for base in $INFRA_ADDONS_DIRS; do
+        [ -d "$base" ] || continue
+        for dir in "$base"/*/; do
+            [ -f "${dir}hooks.py" ] && basename "$dir"
+        done
     done
 }
 
