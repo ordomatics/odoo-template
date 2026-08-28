@@ -22,7 +22,8 @@ jsonref
 jsonschema
 markdown2
 markdownify
-mcp
+# mcp 2.x removed mcp.server.fastmcp, breaking llm_tool's schema generation
+mcp<2
 nltk
 numpy
 openai
