@@ -93,29 +93,19 @@ module_installed() {
         | grep -qx '1'
 }
 
-run_ordomatics_bootstrap() {
-    if ! module_installed "ordomatics"; then
-        return 0
-    fi
-
-    echo "🧩 Running ordomatics bootstrap..."
-    odoo_shell_run <<'EOF'
-from odoo.addons.ordomatics.hooks import run_bootstrap
-
-run_bootstrap(env)
-env.cr.commit()
-EOF
-    echo "✅ ordomatics bootstrap complete"
-}
-
 # Auto-discovered addons with a hooks.py (installed + bootstrapped below).
-INFRA_ADDONS_DIR="${INFRA_ADDONS_DIR:-/mnt/extra-addons/infra}"
+# Deliberately a list, not just infra/: the same bootstrap-on-every-deploy
+# pattern (e.g. the asterisk module configuring sip.provider from env vars)
+# lives wherever its dependency naturally lives, not always under infra/.
+INFRA_ADDONS_DIRS="${INFRA_ADDONS_DIRS:-/mnt/extra-addons/infra /mnt/extra-addons/telephony /mnt/extra-addons/whatsapp /mnt/extra-addons/platform}"
 
 scan_infra_modules() {
-    [ -d "$INFRA_ADDONS_DIR" ] || return 0
-    local dir
-    for dir in "$INFRA_ADDONS_DIR"/*/; do
-        [ -f "${dir}hooks.py" ] && basename "$dir"
+    local base dir
+    for base in $INFRA_ADDONS_DIRS; do
+        [ -d "$base" ] || continue
+        for dir in "$base"/*/; do
+            [ -f "${dir}hooks.py" ] && basename "$dir"
+        done
     done
 }
 
@@ -140,7 +130,8 @@ EOF
 main() {
     local infra_modules=()
     mapfile -t infra_modules < <(scan_infra_modules)
-    local all_modules=("${ALL_MODULES[@]}" "${infra_modules[@]}")
+    local all_modules=()
+    mapfile -t all_modules < <(printf '%s\n' "${ALL_MODULES[@]}" "${infra_modules[@]}" | awk 'NF && !seen[$0]++')
 
     echo "🚀 Starting Odoo module setup..."
     echo "📋 Database: $DB_NAME @ $DB_HOST:$DB_PORT"
@@ -207,7 +198,6 @@ main() {
     echo "🔄 Upgrading:   ${to_update[*]:-none}"
 
     odoo_run "${args[@]}" --log-level=info
-    run_ordomatics_bootstrap
     run_infra_bootstraps
 
     echo "✨ Module setup complete!"
