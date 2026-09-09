@@ -97,7 +97,7 @@ module_installed() {
 # Deliberately a list, not just infra/: the same bootstrap-on-every-deploy
 # pattern (e.g. the asterisk module configuring sip.provider from env vars)
 # lives wherever its dependency naturally lives, not always under infra/.
-INFRA_ADDONS_DIRS="${INFRA_ADDONS_DIRS:-/mnt/extra-addons/infra /mnt/extra-addons/telephony /mnt/extra-addons/whatsapp /mnt/extra-addons/platform}"
+INFRA_ADDONS_DIRS="${INFRA_ADDONS_DIRS:-/mnt/extra-addons/infra /mnt/extra-addons/telephony /mnt/extra-addons/whatsapp /mnt/extra-addons/platform /mnt/extra-addons/saas}"
 
 scan_infra_modules() {
     local base dir
