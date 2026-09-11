@@ -93,19 +93,24 @@ module_installed() {
         | grep -qx '1'
 }
 
-# Auto-discovered addons with a hooks.py (installed + bootstrapped below).
-# Deliberately a list, not just infra/: the same bootstrap-on-every-deploy
-# pattern (e.g. the asterisk module configuring sip.provider from env vars)
-# lives wherever its dependency naturally lives, not always under infra/.
-INFRA_ADDONS_DIRS="${INFRA_ADDONS_DIRS:-/mnt/extra-addons/infra /mnt/extra-addons/telephony /mnt/extra-addons/whatsapp /mnt/extra-addons/platform /mnt/extra-addons/saas}"
+# Auto-discovered addons that bootstrap themselves on every deploy: any module
+# with a hooks.py defining run_bootstrap (e.g. asterisk configuring sip.provider
+# from env vars).
+#
+# Found by content, not by a list of directory names. This script is baked into
+# every image, clients included, so naming telephony/, whatsapp/, saas/ or
+# platform/ here would state a dependency a client image must never have -- and
+# those directories simply do not exist in one, so nothing is found. Filtering on
+# run_bootstrap also skips a hooks.py that has none, which the old name-based
+# scan would have imported and died on.
+EXTRA_ADDONS_ROOT="${EXTRA_ADDONS_ROOT:-/mnt/extra-addons}"
 
 scan_infra_modules() {
-    local base dir
-    for base in $INFRA_ADDONS_DIRS; do
-        [ -d "$base" ] || continue
-        for dir in "$base"/*/; do
-            [ -f "${dir}hooks.py" ] && basename "$dir"
-        done
+    local dir
+    for dir in "$EXTRA_ADDONS_ROOT"/*/*/; do
+        [ -f "${dir}hooks.py" ] || continue
+        grep -q '^def run_bootstrap' "${dir}hooks.py" 2>/dev/null || continue
+        basename "$dir"
     done
 }
 
