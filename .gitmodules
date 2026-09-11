@@ -1,11 +1,11 @@
 [submodule "addons/ordomatics"]
 	path = addons/ordomatics
 	url = https://github.com/ordomatics/ordomatics.git
-	sparseCheckout = n8n_connector/* n8n_crm/* llm_mssql/* llm_n8n/*
+	sparseCheckout = n8n_connector/* n8n_crm/* llm_mssql/* llm_n8n/* ordomatics/*
 [submodule "addons/odoo-llm"]
 	path = addons/odoo-llm
 	url = https://github.com/moctarjallo/odoo-llm.git
-	sparseCheckout = llm/* llm_thread/* llm_tool/* llm_assistant/* llm_mcp_server/* web_json_editor/* llm_generate/* llm_generate_job/* llm_anthropic/* llm_fal_ai/* llm_odoo/* llm_tool_product/*
+	sparseCheckout = llm/* llm_thread/* llm_tool/* llm_assistant/* llm_mcp_server/* web_json_editor/* llm_generate/* llm_generate_job/* llm_anthropic/* llm_fal_ai/* llm_odoo/* llm_tool_product/* llm_store/* llm_knowledge/* llm_pgvector/* llm_mcp_client/* llm_nomic/* llm_ollama/* llm_skills/* llm_transcribe/* llm_transcribe_job/*
 [submodule "addons/oca/queue"]
 	path = addons/oca/queue
 	url = https://github.com/moctarjallo/queue.git
