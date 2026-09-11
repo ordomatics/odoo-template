@@ -5,7 +5,7 @@
 [submodule "addons/odoo-llm"]
 	path = addons/odoo-llm
 	url = https://github.com/moctarjallo/odoo-llm.git
-	sparseCheckout = llm/* llm_thread/* llm_tool/* llm_assistant/* llm_mcp_server/* web_json_editor/*
+	sparseCheckout = llm/* llm_thread/* llm_tool/* llm_assistant/* llm_mcp_server/* web_json_editor/* llm_generate/* llm_generate_job/* llm_anthropic/* llm_fal_ai/* llm_odoo/* llm_tool_product/*
 [submodule "addons/oca/queue"]
 	path = addons/oca/queue
 	url = https://github.com/moctarjallo/queue.git
