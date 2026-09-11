@@ -21,3 +21,8 @@
 	url = https://github.com/OCA/web-api.git
 	branch = 17.0
 	sparseCheckout = endpoint_route_handler/*
+[submodule "addons/oca/dms"]
+	path = addons/oca/dms
+	url = https://github.com/OCA/dms.git
+	branch = 17.0
+	sparseCheckout = dms/*
