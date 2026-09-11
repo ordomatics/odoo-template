@@ -11,3 +11,13 @@
 	url = https://github.com/OCA/queue.git
 	branch = 19.0
 	sparseCheckout = queue_job/*
+[submodule "addons/oca/rest-framework"]
+	path = addons/oca/rest-framework
+	url = https://github.com/OCA/rest-framework.git
+	branch = 19.0
+	sparseCheckout = fastapi/*
+[submodule "addons/oca/web-api"]
+	path = addons/oca/web-api
+	url = https://github.com/OCA/web-api.git
+	branch = 19.0
+	sparseCheckout = endpoint_route_handler/*
