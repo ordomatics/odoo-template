@@ -51,10 +51,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # addons/ mirrors /mnt/extra-addons/ — sparse-checked-out per .gitmodules'
 # sparseCheckout keys (see scripts/setup-submodules.sh, applied by CI before
-# this COPY runs): session_redis/bus_keepalive/n8n_connector/n8n_crm/
-# llm_mssql/llm_n8n from addons/ordomatics; llm/llm_tool/llm_thread/
-# web_json_editor/llm_mcp_server/llm_assistant from addons/odoo-llm;
-# queue_job from addons/oca/queue.
+# this COPY runs). .gitmodules is the list; it is not repeated here, because
+# a second copy only ever goes stale.
 COPY --chown=odoo:odoo ./addons /mnt/extra-addons
 
 COPY ./scripts/setup-odoo-modules.sh /tmp/setup-odoo-modules.sh
