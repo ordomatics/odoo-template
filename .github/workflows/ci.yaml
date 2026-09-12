@@ -202,7 +202,7 @@ jobs:
         uses: ./.github/actions/deploy-helm
         with:
           deploy-repo: ${{ vars.EXTERNAL_PATH }}
-          values-file: values.test.yaml
+          file-suffix: test
           image-tag: ${{ steps.tag.outputs.tag }}
           commit-message: "ci: promote ${{ vars.CLIENT_SLUG }}@${{ steps.tag.outputs.tag }}"
           deploy-ssh-key: ${{ secrets.GITLAB_DEPLOY_SSH_KEY }}
@@ -306,7 +306,7 @@ jobs:
         uses: ./.github/actions/deploy-helm
         with:
           deploy-repo: ${{ vars.EXTERNAL_PATH }}
-          values-file: values.staging.yaml
+          file-suffix: staging
           image-tag: ${{ steps.tag.outputs.tag }}
           commit-message: "ci: promote ${{ vars.CLIENT_SLUG }}@${{ steps.tag.outputs.tag }} to staging"
           deploy-ssh-key: ${{ secrets.GITLAB_DEPLOY_SSH_KEY }}
@@ -374,7 +374,7 @@ jobs:
         uses: ./.github/actions/deploy-helm
         with:
           deploy-repo: ${{ vars.EXTERNAL_PATH }}
-          values-file: values.prod.yaml
+          file-suffix: prod
           image-tag: ${{ steps.tags.outputs.primary }}
           commit-message: "ci: release ${{ vars.CLIENT_SLUG }}@${{ steps.tags.outputs.primary }}"
           deploy-ssh-key: ${{ secrets.GITLAB_DEPLOY_SSH_KEY }}
