@@ -55,6 +55,15 @@ runs:
         git clone "git@gitlab.com:${DEPLOY_REPO}.git" deploy-repo
         cd deploy-repo
 
+        # A pin for an environment that was never deployed would be a green
+        # promote that changes nothing — which is how smartacus's absent test
+        # deployment stayed invisible once this action stopped needing
+        # values.<suffix>.yaml to exist (2026-09-12).
+        if [ ! -f "application.${FILE_SUFFIX}.yaml" ]; then
+          echo "::error::No application.${FILE_SUFFIX}.yaml in ${DEPLOY_REPO} — there is no ${FILE_SUFFIX} deployment to promote to. Create one, or drop this environment from the pipeline."
+          exit 1
+        fi
+
         # Never values.<suffix>.yaml: the platform's deploy-branch primitive
         # regenerates that file whole, so a tag written there is reverted on the
         # next redeploy (live 2026-09-12). The Application lists this one last.
