@@ -211,7 +211,11 @@ jobs:
         run: |
           echo "### Promoted to test" >> $GITHUB_STEP_SUMMARY
           echo "**Tag:** \`${{ steps.tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**ArgoCD:** https://argocd.ordomatics.com/applications/${{ vars.CLIENT_SLUG }}-test" >> $GITHUB_STEP_SUMMARY
+          if [ "$DEPLOYED" = "true" ]; then
+            echo "**ArgoCD:** https://argocd.ordomatics.com/applications/${{ vars.CLIENT_SLUG }}-test" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Not deployed:** no test deployment exists yet. The tag is published and a new one will start on it." >> $GITHUB_STEP_SUMMARY
+          fi
 
   staging-promote:
     runs-on: ubuntu-latest
@@ -315,7 +319,11 @@ jobs:
         run: |
           echo "### Promoted to staging" >> $GITHUB_STEP_SUMMARY
           echo "**Tag:** \`${{ steps.tag.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**ArgoCD:** https://argocd.ordomatics.com/applications/${{ vars.CLIENT_SLUG }}-staging" >> $GITHUB_STEP_SUMMARY
+          if [ "$DEPLOYED" = "true" ]; then
+            echo "**ArgoCD:** https://argocd.ordomatics.com/applications/${{ vars.CLIENT_SLUG }}-staging" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Not deployed:** no staging deployment exists yet. The tag is published and a new one will start on it." >> $GITHUB_STEP_SUMMARY
+          fi
 
   prod-promote:
     runs-on: ubuntu-latest
@@ -383,4 +391,8 @@ jobs:
         run: |
           echo "### Released to production" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** \`${{ steps.tags.outputs.tags }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**ArgoCD:** https://argocd.ordomatics.com/applications/${{ vars.CLIENT_SLUG }}-prod" >> $GITHUB_STEP_SUMMARY
+          if [ "$DEPLOYED" = "true" ]; then
+            echo "**ArgoCD:** https://argocd.ordomatics.com/applications/${{ vars.CLIENT_SLUG }}-prod" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Not deployed:** no prod deployment exists yet. The tag is published and a new one will start on it." >> $GITHUB_STEP_SUMMARY
+          fi
