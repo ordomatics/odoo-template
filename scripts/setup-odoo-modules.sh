@@ -55,7 +55,10 @@ set_base_url() {
     # Frozen too: otherwise the next login rewrites it from whichever request
     # arrives first, and on a wildcard-routed deployment that is not
     # necessarily this tenant's own hostname.
-    psql_run -d "$DB_NAME" -q -v url="$url" <<'SQL'
+    # ON_ERROR_STOP, and the status is checked: without it a failure here
+    # printed the success line anyway, and a fresh tenant silently kept Odoo's
+    # localhost default (2026-09-12).
+    if ! psql_run -d "$DB_NAME" -q -v ON_ERROR_STOP=1 -v url="$url" <<'SQL'
 INSERT INTO ir_config_parameter (key, value, create_uid, write_uid, create_date, write_date)
 VALUES ('web.base.url', :'url', 1, 1, now(), now())
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, write_date = now();
@@ -63,6 +66,10 @@ INSERT INTO ir_config_parameter (key, value, create_uid, write_uid, create_date,
 VALUES ('web.base.url.freeze', 'True', 1, 1, now(), now())
 ON CONFLICT (key) DO NOTHING;
 SQL
+    then
+        echo "❌ Could not set web.base.url to $url"
+        return 1
+    fi
     echo "🔗 web.base.url = $url"
 }
 
@@ -171,7 +178,6 @@ main() {
     echo "📦 Modules: ${all_modules[*]}"
 
     wait_for_db
-    set_base_url
     cleanup_stale_assets
 
     # Seed the database if this is a fresh install
@@ -220,6 +226,7 @@ main() {
 
     if [ ${#to_init[@]} -eq 0 ] && [ ${#to_update[@]} -eq 0 ]; then
         echo "✅ All modules already installed and up-to-date"
+        set_base_url
         return 0
     fi
 
@@ -232,6 +239,9 @@ main() {
     echo "🔄 Upgrading:   ${to_update[*]:-none}"
 
     odoo_run "${args[@]}" --log-level=info
+    # After the modules, so ir_config_parameter exists on a fresh database, and
+    # before the bootstraps, which read web.base.url.
+    set_base_url
     run_infra_bootstraps
 
     echo "✨ Module setup complete!"
