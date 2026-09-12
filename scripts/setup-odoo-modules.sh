@@ -38,6 +38,34 @@ psql_run() {
     PGPASSWORD="$DB_PASSWORD" PGSSLMODE="${DB_SSLMODE:-prefer}" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" "$@"
 }
 
+# The database's own base URL, from SERVER_URL. Pod env is per-deployment, so
+# SERVER_URL normally names the deployment — but the init Job overrides it to
+# the tenant's own hostname alongside DB_NAME, which is what makes this correct
+# for an attached client. Anything derived from web.base.url is per-tenant, and
+# Meta's webhook callback above all: a tenant inheriting the host deployment's
+# URL would have its inbound WhatsApp delivered to another tenant's database
+# (found setting up the second tenant on ordomatics-test, 2026-09-12).
+set_base_url() {
+    local url="${SERVER_URL:-}"
+    url="${url%/}"
+    if [ -z "$url" ]; then
+        echo "ℹ️  SERVER_URL not set — leaving web.base.url alone"
+        return 0
+    fi
+    # Frozen too: otherwise the next login rewrites it from whichever request
+    # arrives first, and on a wildcard-routed deployment that is not
+    # necessarily this tenant's own hostname.
+    psql_run -d "$DB_NAME" -q -v url="$url" <<'SQL'
+INSERT INTO ir_config_parameter (key, value, create_uid, write_uid, create_date, write_date)
+VALUES ('web.base.url', :'url', 1, 1, now(), now())
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, write_date = now();
+INSERT INTO ir_config_parameter (key, value, create_uid, write_uid, create_date, write_date)
+VALUES ('web.base.url.freeze', 'True', 1, 1, now(), now())
+ON CONFLICT (key) DO NOTHING;
+SQL
+    echo "🔗 web.base.url = $url"
+}
+
 wait_for_db() {
     echo "⏳ Waiting for database..."
     local tries=0
@@ -143,6 +171,7 @@ main() {
     echo "📦 Modules: ${all_modules[*]}"
 
     wait_for_db
+    set_base_url
     cleanup_stale_assets
 
     # Seed the database if this is a fresh install
