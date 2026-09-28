@@ -26,3 +26,6 @@
 	url = https://github.com/OCA/dms.git
 	branch = 18.0
 	sparseCheckout = dms/*
+[submodule "addons/infra"]
+	path = addons/infra
+	url = https://github.com/ordomatics/infra.git

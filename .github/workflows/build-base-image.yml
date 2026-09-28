@@ -21,18 +21,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Includes addons/infra, pinned like every other submodule so an infra
+      # change ships as a bump here rather than whenever this next rebuilds.
       - name: Initialize submodules
         run: ./scripts/setup-submodules.sh
 
-      # Public since 2026-08-17 — no credential, so a client's fork needs no
-      # GitHub token of ours at all.
-      - name: Fetch infra modules
-        run: |
-          git clone --depth 1 https://github.com/ordomatics/infra.git addons/infra
-          rm -rf addons/infra/.git
-
       # Public mirror of OCA/storage — provides fs_attachment_s3, a
-      # dependency of one of the infra addons above.
+      # dependency of one of the infra addons.
       - name: Fetch storage modules
         run: |
           git clone --depth 1 --branch 18.0 https://github.com/ordomatics/storage.git addons/storage
