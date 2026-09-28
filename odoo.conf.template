@@ -1,6 +1,6 @@
 [options]
 addons_path = ${ODOO_ADDONS_PATH}
-server_wide_modules = web,queue_job,session_redis,bus_keepalive
+server_wide_modules = web,queue_job,session_redis,bus_keepalive,db_init_guard
 data_dir = /var/lib/odoo
 admin_passwd = ${ADMIN_PASSWD}
 db_host = ${DB_HOST}
