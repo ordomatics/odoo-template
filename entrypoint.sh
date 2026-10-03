@@ -59,24 +59,11 @@ export DEFAULT_ADMIN_PHONE=${DEFAULT_ADMIN_PHONE:-""}
 export DEFAULT_COMPANY_EMAIL=${DEFAULT_COMPANY_EMAIL:-""}
 export DEFAULT_COMPANY_PHONE=${DEFAULT_COMPANY_PHONE:-""}
 
-# Build addons_path from /mnt/extra-addons/ generically:
-# - enterprise → special inner path enterprise/odoo/addons (Odoo enterprise layout)
-# - any subdir that directly contains modules (has __manifest__.py one level in) → added as-is
-# - any subdir with no direct modules (a group dir like oca/, or a client repo submodule) → each of its subdirs added
-# Adding a new submodule only requires a .gitmodules change — never this file.
-_addons_paths=""
-for _dir in $(find /mnt/extra-addons -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
-  | grep -v '/\.' \
-  | grep -v '^/mnt/extra-addons/enterprise$' \
-  | sort); do
-    if find "$_dir" -mindepth 2 -maxdepth 2 -name "__manifest__.py" 2>/dev/null | grep -q .; then
-        _addons_paths="${_addons_paths:+${_addons_paths},}${_dir}"
-    else
-        for _subdir in $(find "$_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | grep -v '/\.' | sort); do
-            _addons_paths="${_addons_paths:+${_addons_paths},}${_subdir}"
-        done
-    fi
-done
+# addons_path: every directory that directly holds a module, wherever it sits —
+# a repo of modules, oca/<repo>, or a module copied straight into /mnt/extra-addons.
+_addons_paths=$(find /mnt/extra-addons -maxdepth 4 -name __manifest__.py \
+  -not -path '*/.*' -not -path '/mnt/extra-addons/enterprise/*' 2>/dev/null \
+  | xargs -r -n1 dirname | xargs -r -n1 dirname | sort -u | paste -sd, -)
 _enterprise_path=""
 if [ -d "/mnt/extra-addons/enterprise/odoo/addons" ]; then
     _enterprise_path=",/mnt/extra-addons/enterprise/odoo/addons"
@@ -84,7 +71,7 @@ fi
 # ODOO_VERSION is set by the upstream odoo:<version> image, so this line is
 # the same on every version branch of this template.
 export ODOO_ADDONS_PATH="/usr/lib/python3/dist-packages/odoo/addons,/var/lib/odoo/addons/${ODOO_VERSION}${_enterprise_path}${_addons_paths:+,${_addons_paths}}"
-unset _addons_paths _dir _subdir
+unset _addons_paths
 
 # Worker count depends on dev vs prod mode
 if [ "${ODOO_DEV_MODE:-false}" = "true" ]; then
