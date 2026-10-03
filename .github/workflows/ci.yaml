@@ -16,7 +16,7 @@ name: CI/CD Pipeline
 #   GITLAB_USERNAME           Deploy token username (registry push)
 #   GITLAB_ACCESS_TOKEN       Deploy token (write_registry scope)
 #   GITLAB_DEPLOY_SSH_KEY     SSH deploy key private key (can_push, values.yaml commit)
-#   GIT_TOKEN                 GitHub PAT with access to private submodules
+#   GIT_TOKEN                 Optional: GitHub PAT, only if a submodule is private
 #
 # PLATFORM_TAG (a repo variable, written when you connect GitHub in the
 # portal) is the Odoo version your deployments run, and so the
@@ -65,12 +65,14 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-          token: ${{ secrets.GIT_TOKEN }}
+          token: ${{ secrets.GIT_TOKEN || github.token }}
 
       - name: Initialize submodules
         run: |
-          git config --global url."https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
-          git config --global url."https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/".insteadOf "git@github.com:"
+          if [ -n "${{ secrets.GIT_TOKEN }}" ]; then
+            git config --global url."https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
+            git config --global url."https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/".insteadOf "git@github.com:"
+          fi
           git submodule sync --recursive
           git submodule update --init --recursive --force --depth=1
 
