@@ -21,5 +21,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     (git config --global --unset url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf || true)
 
 # Copy client-specific addons and module list
-COPY --chown=odoo:odoo ./addons /mnt/extra-addons
+# Where docker-compose mounts ./addons too, so local and deployed code sit alike.
+COPY --chown=odoo:odoo ./addons /mnt/extra-addons/client
 COPY ./modules.cfg /tmp/modules.cfg
