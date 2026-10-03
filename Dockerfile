@@ -1,6 +1,6 @@
 # The Odoo version your deployments run (docker.io/ordomatics/odoo:18.0, ...).
-# No default: CI passes the PLATFORM_TAG repo variable, compose the one in .env.
-ARG PLATFORM_TAG
+# No real default: CI passes the PLATFORM_TAG repo variable, compose the one in .env.
+ARG PLATFORM_TAG=set-PLATFORM_TAG
 FROM ordomatics/odoo:${PLATFORM_TAG}
 
 USER root
