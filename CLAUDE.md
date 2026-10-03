@@ -9,6 +9,11 @@ the full developer guide — this file is what an agent needs to act correctly.
 - `addons/` — the project's modules. A module directory (`addons/<module>/__manifest__.py`)
   or a Git submodule of several. In the image and in compose it sits at
   `/mnt/extra-addons/client`.
+- Third-party modules: add the repo as a submodule on the `PLATFORM_TAG` branch
+  (`git submodule add -b 18.0 <url> addons/<name>`), list only the modules used in
+  `modules.cfg`, their Python deps in `requirements.txt`. Never add OCA `queue`,
+  `rest-framework`, `web-api`, `dms`, `server-env`, `storage` or Ordomatics modules: the base
+  image has them, and a copy here would shadow the platform's.
 - `modules.cfg` — every module installed on a new database and upgraded on every release.
   Add the project's modules at the **end**, dependencies first. Never remove the platform's
   entries above them. A module not listed here is never installed; a listed one that fails to

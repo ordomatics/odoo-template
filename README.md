@@ -120,6 +120,28 @@ step. If the upgrade fails, the site stays down and the database shows the failu
 
 ---
 
+## Modules from elsewhere
+
+**Community modules (OCA and others).** Add the repository as a Git submodule on the branch for
+your Odoo version, then list in `modules.cfg` only the modules you use from it:
+
+```bash
+git submodule add -b 18.0 https://github.com/OCA/<repo>.git addons/oca-<repo>
+```
+
+Their Python dependencies go in `requirements.txt`. A private repository also needs the
+`GIT_TOKEN` secret (see [Troubleshooting](#troubleshooting)).
+
+**Already in the base image — don't add them.** The image already carries OCA `queue`,
+`rest-framework`, `web-api`, `dms`, `server-env` and `storage`, and the Ordomatics modules. A copy
+in your `addons/` takes precedence over the platform's, so it would stop platform fixes to those
+modules from reaching you.
+
+**Your own modules.** A module only this project uses goes straight in `addons/`. One you would
+reuse across projects belongs in its own repository, added here as a submodule like the above.
+
+---
+
 ## Your Odoo version
 
 Your project's Odoo version is set by the platform, not chosen here: CI builds on
@@ -180,7 +202,7 @@ Your GitHub token lacks the `workflow` scope (see [Taking template updates](#tak
 │   └── workflows/
 │       ├── ci.yaml             # Build on dev, release on main
 │       └── validate-build.yml  # Build-only check of the Dockerfile
-├── addons/                     # Your modules → /mnt/extra-addons/client in the image
+├── addons/                     # Your modules and submodules → /mnt/extra-addons/client
 ├── cloudflared/                # Optional tunnel to your local Odoo (--profile tunnel)
 ├── Dockerfile                  # Your layer on ordomatics/odoo:<PLATFORM_TAG>
 ├── db.Dockerfile               # Local Postgres with pgvector
