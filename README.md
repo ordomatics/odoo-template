@@ -96,20 +96,17 @@ Add your own module name(s) at the bottom of `modules.cfg`, after the platform b
 not remove the existing entries, they're already baked into the base image and this file is
 what tells the deploy pipeline to install/upgrade them.
 
-### 4a. Pick your Odoo version (optional)
+### 4a. Your Odoo version
 
-Defaults to whatever `ordomatics/odoo:latest` currently points at. To pin a
-specific version instead (`17.0`, `18.0`, `19.0`, ...), set `PLATFORM_TAG` in the `env:` block at
-the top of `.github/workflows/ci.yaml`:
+Your project's Odoo version is set by the platform, not chosen here. Connecting
+GitHub in the portal writes it to the `PLATFORM_TAG` repo variable, and CI builds
+on `ordomatics/odoo:<PLATFORM_TAG>`, the image your deployments already run.
 
-```yaml
-env:
-  PLATFORM_TAG: "18.0"
-```
+For local builds, copy the same value into `PLATFORM_TAG` in your `.env`.
 
-This changes both which base image CI pulls/builds against and which `ARG PLATFORM_TAG` value
-gets passed into the `Dockerfile`'s `FROM`. No need to recreate your repo or switch branches to
-change version — just edit this one line and push.
+Don't set it to `latest` or a newer version: a newer major version of Odoo cannot
+open your production database. Moving to a new version is an upgrade done through
+the platform.
 
 ### 5. Configure odoo.conf.template
 

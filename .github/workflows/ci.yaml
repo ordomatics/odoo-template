@@ -18,10 +18,10 @@ name: CI/CD Pipeline
 #   GITLAB_DEPLOY_SSH_KEY     SSH deploy key private key (can_push, values.yaml commit)
 #   GIT_TOKEN                 GitHub PAT with access to private submodules
 #
-# PLATFORM_TAG below picks which docker.io/ordomatics/odoo:<tag> version
-# this client builds on (17.0, 18.0, 19.0, ...) — defaults to latest. It's
-# on Docker Hub (not GitLab, which rejects anonymous pulls even for public
-# projects), so no pull credentials are needed.
+# PLATFORM_TAG (a repo variable, written when you connect GitHub in the
+# portal) is the Odoo version your deployments run, and so the
+# docker.io/ordomatics/odoo:<tag> this builds on. Never `latest`: a newer
+# major version cannot open your production database.
 #
 # Branch model:
 #   dev     → build + push dev-latest → test-promote (chained)
@@ -46,7 +46,7 @@ on:
 env:
   REGISTRY: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}
   IMAGE_PATH: ${{ vars.EXTERNAL_PATH }}
-  PLATFORM_TAG: latest
+  PLATFORM_TAG: ${{ vars.PLATFORM_TAG }}
 
 jobs:
   build:
@@ -56,6 +56,7 @@ jobs:
       - name: Check required variables
         run: |
           [ -n "${{ vars.CLIENT_SLUG }}" ] || { echo "ERROR: CLIENT_SLUG repo variable is not set. See README for setup instructions."; exit 1; }
+          [ -n "${{ vars.PLATFORM_TAG }}" ] || { echo "ERROR: PLATFORM_TAG repo variable is not set. Reconnect GitHub from the portal, or set it to your deployments' Odoo version (e.g. 18.0)."; exit 1; }
           [ -n "${{ vars.EXTERNAL_GITLAB_REGISTRY }}" ] || { echo "ERROR: EXTERNAL_GITLAB_REGISTRY repo variable is not set."; exit 1; }
           [ -n "${{ vars.EXTERNAL_PATH }}" ] || { echo "ERROR: EXTERNAL_PATH repo variable is not set."; exit 1; }
 
