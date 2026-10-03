@@ -39,6 +39,8 @@ mistralai
 ollama
 qdrant-client
 replicate
+# OCA modules' migration scripts (dms, queue_job) import it on upgrade
+openupgradelib
 # OCA storage (fs_attachment_s3)
 fsspec[s3]
 # WAV→MP3 conversion for WhatsApp audio (replaces ffmpeg)
