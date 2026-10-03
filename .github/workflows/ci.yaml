@@ -51,7 +51,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    # Not on the template itself: it has no client to build for.
+    if: github.repository != 'ordomatics/odoo-template' && github.event_name == 'push' && github.ref == 'refs/heads/dev'
     steps:
       - name: Check required variables
         run: |
@@ -101,8 +102,7 @@ jobs:
           platforms: linux/amd64
           build-args: |
             PLATFORM_TAG=${{ env.PLATFORM_TAG }}
-          secrets: |
-            github_token=${{ secrets.GIT_TOKEN }}
+          secrets: ${{ secrets.GIT_TOKEN && format('github_token={0}', secrets.GIT_TOKEN) || '' }}
 
       - name: Build summary
         run: |
@@ -113,7 +113,7 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     if: |
-      always() && (
+      always() && github.repository != 'ordomatics/odoo-template' && (
         (github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.build.result == 'success') ||
         (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'test')
       )
@@ -223,8 +223,9 @@ jobs:
   staging-promote:
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/staging') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+      github.repository != 'ordomatics/odoo-template' && (
+        (github.event_name == 'push' && github.ref == 'refs/heads/staging') ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
     concurrency:
       group: deploy-staging
       cancel-in-progress: false
@@ -331,8 +332,9 @@ jobs:
   prod-promote:
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
+      github.repository != 'ordomatics/odoo-template' && (
+        (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) ||
+        (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'))
     concurrency:
       group: deploy-prod
       cancel-in-progress: false
