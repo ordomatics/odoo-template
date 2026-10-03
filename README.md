@@ -1,268 +1,190 @@
-# Ordomatics Odoo Client Template
+# Ordomatics Odoo project template
 
-This is the official template for creating a client Odoo repository on the Ordomatics platform.
-It provides a production-ready Docker build, a multi-environment CI/CD pipeline, and the standard
-addon submodule structure.
+The starting point for an Odoo project hosted on [Ordomatics](https://odoo.ordomatics.com):
+a Docker build on the platform's base image, a local development stack, and the CI that
+builds your image and releases it.
+
+You write Odoo modules here. The platform runs them: servers, databases, upgrades,
+domains and backups are managed from your project's pages in the Ordomatics portal.
 
 ---
 
-## Quickstart
+## From nothing to production
 
-### 1. Create your repo from this template
+### 1. Create the project in the portal
 
-On GitHub: click **Use this template** → **Create a new repository**.
+On [odoo.ordomatics.com](https://odoo.ordomatics.com), sign in and **Create a project**.
+Its production environment is ready in a few minutes at `https://<project>.ordomatics.com`,
+running the platform's standard modules. Your own code comes next.
 
-- Set the owner to your org (e.g. `smartacuspro`)
-- Name it `odoo`
-- Make it **private**
-- Create both a `main` and a `dev` branch
+### 2. Create your repository from this template
 
-You do **not** need to pick a branch of this template repo based on which
-Odoo version you want — always create from `main`. Odoo version is a
-build-time setting (see step 4a below), not a branch choice, so it can be
-changed later without recreating your repo.
+On GitHub: **Use this template** → **Create a new repository**, private.
 
-### 2. Configure repo variables
-
-In your repo: **Settings → Secrets and variables → Actions → Variables**
-
-| Variable | Description | Example |
-|---|---|---|
-| `CLIENT_SLUG` | Your client slug, as onboarded by Ordomatics | `smartacus` |
-| `EXTERNAL_GITLAB_REGISTRY` | GitLab registry host | `registry.gitlab.com` |
-| `EXTERNAL_PATH` | Registry path for your image | `ordomatics/clients/smartacus` |
-
-### 3. Configure repo secrets
-
-In your repo: **Settings → Secrets and variables → Actions → Secrets**
-
-| Secret | Description | Provided by |
-|---|---|---|
-| `GITLAB_USERNAME` | Registry deploy token username | Ordomatics platform team |
-| `GITLAB_ACCESS_TOKEN` | Registry deploy token (read/write registry) | Ordomatics platform team |
-| `GITLAB_DEPLOY_SSH_KEY` | SSH deploy key (push access to your `ordomatics/clients/<slug>` deploy repo, for the `values.<env>.yaml` image-tag bump) | Ordomatics platform team |
-| `GIT_TOKEN` | Optional: GitHub PAT, only if a submodule is private | Your org |
-
-`GITLAB_USERNAME`, `GITLAB_ACCESS_TOKEN`, and `GITLAB_DEPLOY_SSH_KEY` are generated automatically
-by the `onboard-tier2` Backstage template and shown once in the onboarding task's output.
-
-`GIT_TOKEN` is only needed if a submodule in `.gitmodules` is private: a GitHub personal access
-token (classic) with `repo` scope that can read them. Without it, CI uses the workflow's own token. No credential is needed to pull the
-platform base image (`ordomatics/odoo` on Docker Hub) — it's a public image.
-
-### 4. Populate addons/
-
-The `Dockerfile` copies `addons/` into the image. This directory is for
-**your own custom addons only**. The base image
-(`ordomatics/odoo` on Docker Hub) already includes a generic module
-set — Odoo core + `crm`, `queue_job`, the LLM tool/assistant chain
-(`llm`, `llm_tool`, `llm_thread`, `llm_mcp_server`, `llm_assistant`,
-`web_json_editor` — not the full LLM suite, no chat/generation modules),
-and `n8n_connector`/`n8n_crm`/`llm_mssql`/`llm_n8n` — see the base image's
-own README (`odoo-template`'s `18.0`/`19.0`/etc. branches) for the exact
-list. It does **not** include any Ordomatics-proprietary modules
-(WhatsApp, billing, the full LLM suite) — those are Ordomatics's own
-internal addons, not part of this public template.
-
-Each addon is a Git submodule pointing to its own repo. The template includes `addons/ordomatics`
-(Ordomatics's own public generic-modules repo) as a working example so a fresh clone builds
-out of the box with no fake/placeholder URLs — replace it with your own custom addons (it's
-redundant with the base image, which already includes these same modules):
+Leave **Include all branches** off: the template's other branches build the platform's
+base images and are not yours. Then create `dev` from `main`:
 
 ```bash
-git rm addons/ordomatics
-git submodule add https://github.com/your-org/your-addon.git addons/your-addon
-git add .gitmodules addons/your-addon
-git commit -m "feat: replace example submodule with your-addon"
+git clone https://github.com/<you>/<repo>.git && cd <repo>
+git switch -c dev && git push -u origin dev
 ```
 
-Or just add your own addons alongside it:
+### 3. Connect GitHub in the portal
 
-```bash
-git submodule add https://github.com/your-org/your-addon.git addons/your-addon
-git add .gitmodules addons/your-addon
-git commit -m "feat: add your-addon submodule"
-```
+On your project's page, **Connect GitHub**, install the Ordomatics Platform CI app on
+**only this repository**, then pick it with **Use**.
 
-If you have no custom addons yet, create an empty placeholder so the Docker build succeeds:
+The platform writes what CI needs into the repository (Settings → Secrets and variables →
+Actions). You do not set these yourself:
 
-```bash
-mkdir -p addons/.keep && touch addons/.keep
-git add addons/.keep
-git commit -m "chore: placeholder for custom addons"
-```
-
-Add your own module name(s) at the bottom of `modules.cfg`, after the platform base list — do
-not remove the existing entries, they're already baked into the base image and this file is
-what tells the deploy pipeline to install/upgrade them.
-
-### 4a. Your Odoo version
-
-Your project's Odoo version is set by the platform, not chosen here. Connecting
-GitHub in the portal writes it to the `PLATFORM_TAG` repo variable, and CI builds
-on `ordomatics/odoo:<PLATFORM_TAG>`, the image your deployments already run.
-
-For local builds, copy the same value into `PLATFORM_TAG` in your `.env`.
-
-Don't set it to `latest` or a newer version: a newer major version of Odoo cannot
-open your production database. Moving to a new version is an upgrade done through
-the platform.
-
-### 5. Configure odoo.conf.template
-
-`odoo.conf.template` is rendered at container startup using environment variables injected
-by the Helm chart. You generally do not need to edit this file.
-
-Key variables it uses:
-
-| Variable | Set by |
+| Variable | What it is |
 |---|---|
-| `DB_NAME` | Helm values (`odoo.config.dbName`) |
-| `DB_HOST` | Helm values (`odoo.config.dbHost`) |
-| `DB_USER` | Helm values (`odoo.config.dbUser`) |
-| `DB_PASSWORD` | K8s secret |
-| `ODOO_WORKERS` | Helm values (`odoo.config.odooWorkers`) |
-| `SERVER_URL` | Helm values (`odoo.config.serverUrl`) |
+| `CLIENT_SLUG` | Your project's name on the platform |
+| `PLATFORM_TAG` | Your project's Odoo version, e.g. `18.0` (see [Your Odoo version](#your-odoo-version)) |
+| `EXTERNAL_GITLAB_REGISTRY`, `EXTERNAL_PATH` | Where your images are pushed |
 
-`dbfilter` is derived automatically from `DB_NAME` as `^${DB_NAME}$`, ensuring strict
-single-database routing per deployment.
+| Secret | What it is |
+|---|---|
+| `GITLAB_USERNAME`, `GITLAB_ACCESS_TOKEN` | Push access to your image registry |
+| `GITLAB_DEPLOY_SSH_KEY` | Lets CI record which image to release |
 
----
+If the platform adds or rotates one of these later, **Refresh pipeline settings** next to
+your repository on the project page writes them again.
 
-## CI/CD Pipeline
-
-The pipeline is defined in `.github/workflows/ci.yaml`. It follows a promotion model:
-images are built once on `dev` and promoted through environments by retagging. `ci.yaml`
-requires `CLIENT_SLUG`/`EXTERNAL_*` repo variables to be set (see step 2 above) — a second,
-always-on workflow, `.github/workflows/validate-build.yml`, does a build-only sanity check
-of the Dockerfile with no variables or secrets needed at all, so a broken Dockerfile still
-fails CI even before those variables are configured.
-
-```
-dev branch push
-    └── build job
-            └── test-promote job
-                    └── (manual) staging-promote job
-                            └── (manual) prod-promote job
-```
-
-### Branch model
-
-| Branch | Triggers | Result |
-|---|---|---|
-| `dev` | push | Build image, run tests, promote to test env |
-| `staging` | push | Pull test-latest, validate, promote to staging |
-| `main` | push or tag `v*` | Promote to production |
-
-### What test-promote does
-
-1. Pulls `dev-latest` from the registry
-2. Runs smoke tests (Odoo CLI check, base module init, health check)
-3. Retags as `test-<sha>` and `test-latest`
-4. Updates `chart/values.<CLIENT_SLUG>-test.yaml` in the Ordomatics helm repo
-5. ArgoCD picks up the change and deploys to the test namespace
-
-### What deploy-helm does
-
-The `.github/actions/deploy-helm` action clones the Ordomatics Helm GitLab repo, updates
-`image.tag` in the relevant values file using `yq`, commits, and pushes. ArgoCD auto-syncs
-from there.
-
-### Environments
-
-The pipeline uses GitHub Environments (`test`, `staging`, `production`). You can add
-required reviewers or deployment protection rules in **Settings → Environments**.
-
----
-
-## Local development
+### 4. Run it locally
 
 ```bash
-# Clone with all submodules
-git clone --recurse-submodules https://github.com/your-org/odoo.git
-cd odoo
-
-# Or initialize submodules after cloning
 git submodule update --init --recursive
+cp .env.example .env
+```
 
-# Copy and fill in local env
-cp .env.example .env   # edit DB credentials, API keys, etc.
+In `.env`, set at least:
 
-# Start (first time or after code changes)
+| Variable | Value |
+|---|---|
+| `COMPOSE_PROJECT_NAME` | Your project's name, so its containers and volumes are its own |
+| `DB_NAME` | Your project's name too: production's database is named after it |
+| `PLATFORM_TAG` | The same value as the `PLATFORM_TAG` repo variable |
+
+```bash
 docker compose up --build -d
 ```
 
-Access Odoo at `http://localhost:8069`.
+Odoo is on [localhost:8069](http://localhost:8069) (user `admin`, password `admin`). The first
+start installs every module in `modules.cfg` and takes a few minutes; `docker compose logs -f odoo`
+shows it.
 
-### Cloudflare Tunnel
+If port 8069 is taken, override it in an untracked `docker-compose.override.yml`:
 
-The compose stack includes a `cloudflared` service for exposing the local instance via a Cloudflare Tunnel. It is gated behind the `tunnel` profile and only starts when explicitly requested:
-
-```bash
-docker compose --profile tunnel up -d
+```yaml
+services:
+  odoo:
+    ports: !override
+      - "8079:8069"
 ```
 
-Place your tunnel credentials in `cloudflared/credentials.json` and your tunnel config in `cloudflared/config.yml` before starting. The credentials file is gitignored and must never be committed.
+### 5. Write your module
 
-### Redis
+Put it in `addons/` — either a module directory (`addons/my_module/__manifest__.py`) or a Git
+submodule holding several (`git submodule add <url> addons/<repo>`). Then add its name at the
+**end** of `modules.cfg`, after the platform's list. Every module listed there is installed on
+a new database and upgraded on every release; one that is not listed is never installed.
 
-Redis is included in the compose stack for session storage (`SESSION_REDIS_HOST=redis`). It starts automatically with `docker compose up` and requires no extra configuration for local dev.
+`addons/` is mounted into the container, and Odoo runs with `--dev=reload`:
 
-### Picking up platform updates
+- **Python** changes reload on their own.
+- **Views, data, new fields or a new module** need an upgrade: `docker compose restart odoo`
+  upgrades everything in `modules.cfg`.
 
-When the Ordomatics platform team releases a new base image (new platform modules, entrypoint
-changes, etc.), force-pull the latest base image before rebuilding:
+A release fails if a module in `modules.cfg` did not install, so a typo there shows up as a
+failed release rather than a missing feature.
 
-```bash
-docker compose build --pull
-docker compose down -v   # removes stale anonymous volumes so new module structure is picked up
-docker compose up -d
-```
+### 6. Release it
 
-> `--pull` tells Docker to always check the registry for a newer base image rather than using
-> the locally cached version. `down -v` is needed because `VOLUME /mnt/extra-addons` in the
-> base image means Docker uses an anonymous volume for that path — without `-v`, the old volume
-> (with the old module structure) would be reused even after a rebuild.
+| You push | CI does |
+|---|---|
+| `dev` | Builds the image, runs smoke tests (Odoo starts, `base` installs, health check), and publishes it as `test-<commit>`. If the project has a **test** environment, it is updated to that image. |
+| `main` | Releases the **last image `dev` built and tested** to production as `prod-<commit>`. Nothing is rebuilt. |
+
+So: push to `dev`, wait for its run to pass, then fast-forward `main` to `dev`.
+
+A production release then runs on its own, in this order:
+
+1. The servers stop; the site answers 503 for a few minutes.
+2. Your project's database is upgraded on the new image (every module in `modules.cfg`).
+3. The new servers start; other databases on the environment are upgraded after.
+
+The environment reads **Updating…** on the portal throughout, and **View logs** shows each
+step. If the upgrade fails, the site stays down and the database shows the failure with
+**Retry upgrade**: fix the module and release again.
 
 ---
 
-## File structure
+## Your Odoo version
 
-```
-.
-├── .github/
-│   ├── actions/
-│   │   └── deploy-helm/        # Reusable action: update helm values + push
-│   └── workflows/
-│       ├── ci.yaml             # Multi-env CI/CD pipeline
-│       └── validate-build.yml  # Build-only sanity check, no vars/secrets needed
-├── addons/                     # Client-specific addon submodules (mounted as /mnt/extra-addons)
-│   └── ordomatics/              # Working example (real, public) — replace with your own addons
-├── cloudflared/                # Cloudflare Tunnel config (activate with --profile tunnel)
-│   ├── config.yml
-│   └── credentials.json        # Never commit — listed in .gitignore
-├── Dockerfile                  # Thin layer on platform base image
-├── db.Dockerfile               # Postgres + pgvector for local dev
-├── docker-compose.yml          # Local development stack (includes Redis + Cloudflare Tunnel)
-├── modules.cfg                 # Modules to install/upgrade on deploy
-└── requirements.txt            # Client-specific Python packages
-```
+Your project's Odoo version is set by the platform, not chosen here: CI builds on
+`ordomatics/odoo:<PLATFORM_TAG>`, the image your deployments already run, and refuses to build
+without it.
+
+Never set it to `latest` or a newer version: a newer major version of Odoo cannot open your
+production database. Moving to a new version is an upgrade done through the platform.
+
+The base image already contains Odoo itself plus the platform's modules (sign-in with Google,
+background jobs, file storage, the assistant chain, n8n). `modules.cfg` lists the ones every
+project installs; keep them and add yours after.
+
+---
+
+## Taking template updates
+
+When this template changes (CI, Dockerfile, compose), bring the change into your repository
+like any other: merge or cherry-pick it onto `dev`, push, and release.
+
+Pushing a change to `.github/workflows/` needs a GitHub token with the `workflow` scope. With
+the GitHub CLI: `gh auth refresh -s workflow`.
+
+To pick up a new base image locally: `docker compose build --pull && docker compose up -d`.
 
 ---
 
 ## Troubleshooting
 
-**CI fails with "CLIENT_SLUG repo variable is not set"**
-→ Add the three required variables in Settings → Secrets and variables → Actions → Variables.
+**Locally, Odoo waits for the database and gives up ("Database timeout").**
+Compose lets variables exported in your shell override `.env`. If your shell exports `DB_NAME`
+(or `DB_USER`, `DB_PASSWORD`), Postgres is created with that name while Odoo looks for the one
+in `.env`. Unset them, then recreate: `docker compose down -v && docker compose up -d`.
 
-**Build fails with `/addons: not found`**
-→ Submodules were not initialized. If any are private, ensure `GIT_TOKEN` is set and can read
-them.
+**A release fails with "Not installed: my_module".**
+The module is listed in `modules.cfg` but Odoo could not find or install it: a typo in the name,
+a missing `__manifest__.py`, or an error while installing — the release's logs show which.
 
-**Odoo shows "Database manager has been disabled"**
-→ This means `DB_NAME` is not set or `dbfilter` is too broad. Check that
-`odoo.config.dbName` is set correctly in your Helm values file.
+**CI fails with "PLATFORM_TAG repo variable is not set".**
+The repository was connected before the platform wrote it: **Refresh pipeline settings** on
+your project page.
 
-**`test-promote` fails on base module init**
-→ Usually a missing submodule or broken addon. Check the step logs for the specific module
-that failed to load.
+**CI cannot check out a submodule.**
+A private submodule needs a `GIT_TOKEN` secret: a GitHub token with `repo` scope that can read
+it. Public ones need nothing.
+
+**`git push` is refused for a workflow file.**
+Your GitHub token lacks the `workflow` scope (see [Taking template updates](#taking-template-updates)).
+
+---
+
+## Files
+
+```
+.
+├── .github/
+│   ├── actions/deploy-helm/    # Records the image to release in your GitLab deploy repo
+│   └── workflows/
+│       ├── ci.yaml             # Build on dev, release on main
+│       └── validate-build.yml  # Build-only check of the Dockerfile
+├── addons/                     # Your modules → /mnt/extra-addons/client in the image
+├── cloudflared/                # Optional tunnel to your local Odoo (--profile tunnel)
+├── Dockerfile                  # Your layer on ordomatics/odoo:<PLATFORM_TAG>
+├── db.Dockerfile               # Local Postgres with pgvector
+├── docker-compose.yml          # Local stack: Odoo, Postgres, Redis
+├── modules.cfg                 # Modules installed and upgraded on every release
+└── requirements.txt            # Extra Python packages for your modules
+```
