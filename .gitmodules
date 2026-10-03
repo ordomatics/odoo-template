@@ -29,3 +29,7 @@
 [submodule "addons/infra"]
 	path = addons/infra
 	url = https://github.com/ordomatics/infra.git
+[submodule "addons/auth"]
+	path = addons/auth
+	url = https://github.com/ordomatics/auth.git
+	branch = main
