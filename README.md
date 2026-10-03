@@ -41,13 +41,13 @@ In your repo: **Settings → Secrets and variables → Actions → Secrets**
 | `GITLAB_USERNAME` | Registry deploy token username | Ordomatics platform team |
 | `GITLAB_ACCESS_TOKEN` | Registry deploy token (read/write registry) | Ordomatics platform team |
 | `GITLAB_DEPLOY_SSH_KEY` | SSH deploy key (push access to your `ordomatics/clients/<slug>` deploy repo, for the `values.<env>.yaml` image-tag bump) | Ordomatics platform team |
-| `GIT_TOKEN` | GitHub PAT to check out private submodules | Your org |
+| `GIT_TOKEN` | Optional: GitHub PAT, only if a submodule is private | Your org |
 
 `GITLAB_USERNAME`, `GITLAB_ACCESS_TOKEN`, and `GITLAB_DEPLOY_SSH_KEY` are generated automatically
 by the `onboard-tier2` Backstage template and shown once in the onboarding task's output.
 
-`GIT_TOKEN` must be a GitHub personal access token (classic) with `repo` scope, able to read
-all private submodule repos listed in `.gitmodules`. No credential is needed to pull the
+`GIT_TOKEN` is only needed if a submodule in `.gitmodules` is private: a GitHub personal access
+token (classic) with `repo` scope that can read them. Without it, CI uses the workflow's own token. No credential is needed to pull the
 platform base image (`ordomatics/odoo` on Docker Hub) — it's a public image.
 
 ### 4. Populate addons/
@@ -256,8 +256,8 @@ docker compose up -d
 → Add the three required variables in Settings → Secrets and variables → Actions → Variables.
 
 **Build fails with `/addons: not found`**
-→ Submodules were not initialized. Ensure `GIT_TOKEN` is set and has read access to all
-submodule repos listed in `.gitmodules`.
+→ Submodules were not initialized. If any are private, ensure `GIT_TOKEN` is set and can read
+them.
 
 **Odoo shows "Database manager has been disabled"**
 → This means `DB_NAME` is not set or `dbfilter` is too broad. Check that
