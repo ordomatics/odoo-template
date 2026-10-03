@@ -239,6 +239,19 @@ main() {
     echo "🔄 Upgrading:   ${to_update[*]:-none}"
 
     odoo_run "${args[@]}" --log-level=info
+
+    # Odoo skips a module it cannot find without failing, so check each one landed.
+    local missing=()
+    installed=$(psql_run -d "$DB_NAME" -t -c \
+        "SELECT name FROM ir_module_module WHERE state = 'installed';" 2>/dev/null \
+        | tr -d ' ' | grep -v '^$' || true)
+    for mod in "${to_init[@]}"; do
+        echo "$installed" | grep -qx "$mod" || missing+=("$mod")
+    done
+    if [ ${#missing[@]} -gt 0 ]; then
+        echo "❌ Not installed: ${missing[*]} — not on the addons path, or failed to install"
+        exit 1
+    fi
     # After the modules, so ir_config_parameter exists on a fresh database, and
     # before the bootstraps, which read web.base.url.
     set_base_url
