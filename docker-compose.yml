@@ -26,6 +26,8 @@ services:
   odoo:
     build:
       context: .
+      args:
+        PLATFORM_TAG: ${PLATFORM_TAG:?set PLATFORM_TAG in .env to your deployments' Odoo version}
       secrets:
         - github_token
     env_file:

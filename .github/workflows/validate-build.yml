@@ -32,3 +32,5 @@ jobs:
           file: ./Dockerfile
           push: false
           platforms: linux/amd64
+          build-args: |
+            PLATFORM_TAG=18.0
