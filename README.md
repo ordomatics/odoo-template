@@ -200,8 +200,7 @@ Your GitHub token lacks the `workflow` scope (see [Taking template updates](#tak
 ├── .github/
 │   ├── actions/deploy-helm/    # Records the image to release in your GitLab deploy repo
 │   └── workflows/
-│       ├── ci.yaml             # Build on dev, release on main
-│       └── validate-build.yml  # Build-only check of the Dockerfile
+│       └── ci.yaml             # Build on dev, release on main
 ├── addons/                     # Your modules and submodules → /mnt/extra-addons/client
 ├── cloudflared/                # Optional tunnel to your local Odoo (--profile tunnel)
 ├── Dockerfile                  # Your layer on ordomatics/odoo:<PLATFORM_TAG>
