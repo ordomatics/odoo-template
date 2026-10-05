@@ -44,6 +44,9 @@ services:
     volumes:
       - odoo-web-data:/var/lib/odoo
       - ./addons:/mnt/extra-addons/client
+      # Mounted, not only baked into the image: a module added to the list is
+      # installed by a restart, without a rebuild.
+      - ./modules.cfg:/tmp/modules.cfg:ro
       - ./logs:/var/log/odoo
     restart: unless-stopped
     healthcheck:
