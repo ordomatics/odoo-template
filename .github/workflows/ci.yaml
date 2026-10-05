@@ -51,8 +51,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Not on the template itself: it has no client to build for.
-    if: github.repository != 'ordomatics/odoo-template' && github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    # Not on the template itself: it has no client to build for. And not before
+    # the project is connected in the portal (which sets CLIENT_SLUG): a new
+    # repository's first pushes are skipped rather than shown as failures.
+    if: github.repository != 'ordomatics/odoo-template' && vars.CLIENT_SLUG != '' && github.event_name == 'push' && github.ref == 'refs/heads/dev'
     steps:
       - name: Check required variables
         run: |
@@ -113,7 +115,7 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     if: |
-      always() && github.repository != 'ordomatics/odoo-template' && (
+      always() && github.repository != 'ordomatics/odoo-template' && vars.CLIENT_SLUG != '' && (
         (github.event_name == 'push' && github.ref == 'refs/heads/dev' && needs.build.result == 'success') ||
         (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'test')
       )
@@ -223,7 +225,7 @@ jobs:
   staging-promote:
     runs-on: ubuntu-latest
     if: |
-      github.repository != 'ordomatics/odoo-template' && (
+      github.repository != 'ordomatics/odoo-template' && vars.CLIENT_SLUG != '' && (
         (github.event_name == 'push' && github.ref == 'refs/heads/staging') ||
         (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
     concurrency:
@@ -332,7 +334,7 @@ jobs:
   prod-promote:
     runs-on: ubuntu-latest
     if: |
-      github.repository != 'ordomatics/odoo-template' && (
+      github.repository != 'ordomatics/odoo-template' && vars.CLIENT_SLUG != '' && (
         (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) ||
         (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'))
     concurrency:
