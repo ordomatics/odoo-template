@@ -58,6 +58,7 @@ export OLLAMA_API_BASE=${OLLAMA_API_BASE:-""}
 export DEFAULT_ADMIN_PHONE=${DEFAULT_ADMIN_PHONE:-""}
 export DEFAULT_COMPANY_EMAIL=${DEFAULT_COMPANY_EMAIL:-""}
 export DEFAULT_COMPANY_PHONE=${DEFAULT_COMPANY_PHONE:-""}
+export RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-""}
 
 # addons_path: every directory that directly holds a module, wherever it sits —
 # a repo of modules, oca/<repo>, or a module copied straight into /mnt/extra-addons.

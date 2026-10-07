@@ -28,6 +28,7 @@ agentic_base_url = ${AGENTIC_BASE_URL}
 default_admin_phone = ${DEFAULT_ADMIN_PHONE}
 default_company_email = ${DEFAULT_COMPANY_EMAIL}
 default_company_phone = ${DEFAULT_COMPANY_PHONE}
+email_from = ${RESEND_FROM_EMAIL}
 
 [queue_job]
 channels = ${ODOO_QUEUE_JOB_CHANNELS}
