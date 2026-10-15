@@ -70,7 +70,8 @@ runs:
         # Publishing succeeded either way; say plainly whether anything is
         # consuming it. Claiming a deployment that does not exist is what kept
         # smartacus's absent test deployment invisible (2026-09-12).
-        if [ -f "application.${FILE_SUFFIX}.yaml" ]; then
+        # Any environment following this channel reads this file, whatever its own name.
+        if grep -qsF -- "\$values/image.${FILE_SUFFIX}.yaml" application.*.yaml; then
           echo "DEPLOYED=true" >> "$GITHUB_ENV"
         else
           echo "DEPLOYED=false" >> "$GITHUB_ENV"
