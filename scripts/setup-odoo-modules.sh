@@ -150,19 +150,33 @@ scan_infra_modules() {
 }
 
 run_infra_bootstraps() {
-    local mod
+    local mods=() mod
     while read -r mod; do
         [ -z "$mod" ] && continue
         module_installed "$mod" || continue
-        echo "🧩 Running $mod bootstrap..."
-        odoo_shell_run <<EOF
-from odoo.addons.${mod}.hooks import run_bootstrap
-
-run_bootstrap(env)
-env.cr.commit()
-EOF
-        echo "✅ $mod bootstrap complete"
+        mods+=("$mod")
     done < <(scan_infra_modules)
+    [ ${#mods[@]} -eq 0 ] && return 0
+    echo "🧩 Running bootstraps: ${mods[*]}"
+    # One odoo shell for all of them: each used to pay a full registry load
+    # (~16s), about five minutes per deploy. Committed one by one, as when each
+    # had its own process: a failure rolls back only that module's work (some
+    # bootstraps commit themselves, so a savepoint cannot hold one).
+    odoo_shell_run <<EOF
+import importlib
+import traceback
+
+for mod in [$(printf "'%s'," "${mods[@]}")]:
+    try:
+        importlib.import_module(f"odoo.addons.{mod}.hooks").run_bootstrap(env)
+        env.cr.commit()
+        print(f"✅ {mod} bootstrap complete", flush=True)
+    except Exception:
+        env.cr.rollback()
+        env.invalidate_all()
+        print(f"⚠️ {mod} bootstrap failed; continuing", flush=True)
+        traceback.print_exc()
+EOF
 }
 
 # ─── Main ───────────────────────────────────────────────────────────────────
