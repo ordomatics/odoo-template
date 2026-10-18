@@ -159,8 +159,30 @@ project installs; keep them and add yours after.
 
 ## Taking template updates
 
-When this template changes (CI, Dockerfile, compose), bring the change into your repository
-like any other: merge or cherry-pick it onto `dev`, push, and release.
+Two kinds of change reach your project from here:
+
+- **The base image** (`entrypoint.sh`, module setup, `odoo.conf.template`) comes with
+  `FROM ordomatics/odoo:<version>`: your next build picks it up, nothing to do.
+- **This repository's own files** (CI workflow, Dockerfile, compose) you bring in yourself.
+
+A repository created from this template shares no history with it, so `git merge` cannot
+apply its changes. Cherry-pick them, one commit at a time, onto `dev`:
+
+```bash
+# Once
+git remote add template https://github.com/ordomatics/odoo-template.git
+
+# Each time
+git fetch template
+git log --oneline dev..template/dev      # what changed upstream; pick what you want
+git checkout dev
+git cherry-pick -x <commit>              # -x records which template commit it came from
+git push origin dev                      # builds and tests; release as usual
+```
+
+If a cherry-pick conflicts, it is usually on a line you changed yourself or on an older
+template change you never took: keep your side, add the new lines, then
+`git add <file> && git cherry-pick --continue`.
 
 Pushing a change to `.github/workflows/` needs a GitHub token with the `workflow` scope. With
 the GitHub CLI: `gh auth refresh -s workflow`.
