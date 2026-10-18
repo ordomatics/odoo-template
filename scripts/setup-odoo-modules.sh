@@ -11,6 +11,7 @@ DB_PORT="${DB_PORT:-5432}"
 DB_USER="${DB_USER:-odoo}"
 DB_PASSWORD="${DB_PASSWORD:-odoo}"
 ODOO_CONFIG="/etc/odoo/odoo.conf"
+PLAN_ONLY=false
 
 # Timeout for the odoo --init/--update invocation (seconds).
 # A full fresh install of all modules can take several minutes.
@@ -179,6 +180,81 @@ for mod in [$(printf "'%s'," "${mods[@]}")]:
 EOF
 }
 
+# ─── Changed modules ────────────────────────────────────────────────────────
+# A checksum of every installed module's files, kept in the database, so a
+# deploy upgrades only what changed: `-u base` upgraded all ~160 modules on
+# every release, ~4 minutes with the site down (2026-10-18). Odoo itself is one
+# more entry; when it changes, everything is upgraded as before.
+CHECKSUM_KEY="ordomatics.module_checksums"
+
+# Prints {"module": "sha256", ..., "__odoo__": "sha256"} for the modules named.
+module_checksums() {
+    python3 - "$ODOO_CONFIG" "$@" <<'PY'
+import configparser, hashlib, json, os, sys
+import odoo
+
+def digest(root, skip=()):
+    h = hashlib.sha256()
+    for d, dirs, files in os.walk(root):
+        dirs[:] = sorted(x for x in dirs if x not in ('__pycache__', '.git') + skip)
+        for f in sorted(files):
+            if f.endswith(('.pyc', '.pyo')):
+                continue
+            path = os.path.join(d, f)
+            h.update(os.path.relpath(path, root).encode())
+            with open(path, 'rb') as fh:
+                h.update(fh.read())
+    return h.hexdigest()
+
+cfg = configparser.ConfigParser()
+cfg.read(sys.argv[1])
+paths = [p.strip() for p in cfg.get('options', 'addons_path', fallback='').split(',') if p.strip()]
+wanted = set(sys.argv[2:])
+found = {}
+for path in paths:
+    if not os.path.isdir(path):
+        continue
+    for name in sorted(wanted - found.keys()):
+        if os.path.isfile(os.path.join(path, name, '__manifest__.py')):
+            found[name] = os.path.join(path, name)   # first on the path wins, as in Odoo
+sums = {name: digest(root) for name, root in sorted(found.items())}
+sums['__odoo__'] = digest(os.path.dirname(odoo.__file__), skip=('addons',))
+print(json.dumps(sums, sort_keys=True))
+PY
+}
+
+stored_checksums() {
+    psql_run -d "$DB_NAME" -tAc \
+        "SELECT value FROM ir_config_parameter WHERE key = '$CHECKSUM_KEY';" 2>/dev/null || true
+}
+
+store_checksums() {
+    psql_run -d "$DB_NAME" -q -v ON_ERROR_STOP=1 -v key="$CHECKSUM_KEY" -v value="$1" <<'SQL'
+INSERT INTO ir_config_parameter (key, value, create_uid, write_uid, create_date, write_date)
+VALUES (:'key', :'value', 1, 1, now(), now())
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, write_date = now();
+SQL
+}
+
+# The installed modules whose checksum differs from the stored one, one per
+# line, or ALL when there is nothing to compare with or Odoo itself changed.
+changed_modules() {
+    python3 - "$1" "$2" <<'PY'
+import json, sys
+current = json.loads(sys.argv[1])
+try:
+    stored = json.loads(sys.argv[2])
+except ValueError:
+    stored = {}
+if not stored or stored.get('__odoo__') != current.get('__odoo__'):
+    print('ALL')
+else:
+    for name, value in sorted(current.items()):
+        if name != '__odoo__' and stored.get(name) != value:
+            print(name)
+PY
+}
+
 # ─── Main ───────────────────────────────────────────────────────────────────
 
 main() {
@@ -192,7 +268,8 @@ main() {
     echo "📦 Modules: ${all_modules[*]}"
 
     wait_for_db
-    cleanup_stale_assets
+    # A plan only reads.
+    [ "$PLAN_ONLY" = "true" ] || cleanup_stale_assets
 
     # Seed the database if this is a fresh install
     if ! db_initialized; then
@@ -207,15 +284,24 @@ main() {
         "SELECT name FROM ir_module_module WHERE state = 'installed';" 2>/dev/null \
         | tr -d ' ' | grep -v '^$' || true)
 
-    # Split into --init (not yet installed) and --update (already installed)
+    # Not yet installed: --init. Installed: --update, but only what changed.
     local to_init=() to_update=()
     for mod in "${all_modules[@]}"; do
-        if echo "$installed" | grep -qx "$mod"; then
-            to_update+=("$mod")
-        else
-            to_init+=("$mod")
-        fi
+        echo "$installed" | grep -qx "$mod" || to_init+=("$mod")
     done
+    # shellcheck disable=SC2086 # one module name per word
+    CURRENT_CHECKSUMS=$(module_checksums $installed)
+    local changed=()
+    mapfile -t changed < <(changed_modules "$CURRENT_CHECKSUMS" "$(stored_checksums)")
+    if [ "${changed[0]:-}" = "ALL" ]; then
+        echo "🔁 No stored checksums, or Odoo itself changed: upgrading everything"
+        for mod in "${all_modules[@]}"; do
+            echo "$installed" | grep -qx "$mod" && to_update+=("$mod")
+        done
+    else
+        # Odoo upgrades whatever depends on these too.
+        to_update=("${changed[@]}")
+    fi
 
     # Detect uninstalled deps of already-installed modules.
     # Handles the case where a new dependency is added to an installed module's
@@ -238,9 +324,17 @@ main() {
         fi
     done
 
+    if [ "$PLAN_ONLY" = "true" ]; then
+        # For the prescale Job: whether the site must stop for this deploy.
+        if [ ${#to_init[@]} -eq 0 ] && [ ${#to_update[@]} -eq 0 ]; then echo none; else echo changes; fi
+        return 0
+    fi
+
     if [ ${#to_init[@]} -eq 0 ] && [ ${#to_update[@]} -eq 0 ]; then
         echo "✅ All modules already installed and up-to-date"
+        store_checksums "$CURRENT_CHECKSUMS"
         set_base_url
+        run_infra_bootstraps
         return 0
     fi
 
@@ -266,6 +360,12 @@ main() {
         echo "❌ Not installed: ${missing[*]} — not on the addons path, or failed to install"
         exit 1
     fi
+    # Installed or upgraded now, so their checksums are the ones in the database.
+    installed=$(psql_run -d "$DB_NAME" -t -c \
+        "SELECT name FROM ir_module_module WHERE state = 'installed';" 2>/dev/null \
+        | tr -d ' ' | grep -v '^$' || true)
+    # shellcheck disable=SC2086
+    store_checksums "$(module_checksums $installed)"
     # After the modules, so ir_config_parameter exists on a fresh database, and
     # before the bootstraps, which read web.base.url.
     set_base_url
@@ -278,9 +378,10 @@ main() {
 
 case "${1:-}" in
     --help|-h)
-        echo "Usage: $0 [--help|--core-only|--verify|--debug]"
+        echo "Usage: $0 [--help|--core-only|--plan|--verify|--debug]"
         echo "  (no args)    Install/upgrade all modules (idempotent)"
         echo "  --core-only  Install only core modules (no custom)"
+        echo "  --plan       Print none if a deploy would change nothing, else changes"
         echo "  --verify     Show installed module states from DB"
         echo "  --debug      Show addons paths and available modules"
         exit 0
@@ -290,6 +391,14 @@ case "${1:-}" in
         # Override via: MODULES_FILE=/path/to/custom-list.txt setup_odoo_modules.sh
         mapfile -t ALL_MODULES < <(load_modules | grep -E "^(base|web|contacts|product|account|mail|queue_job|fastapi|endpoint_route_handler)$")
         main
+        ;;
+    --plan)
+        # Prints "none" when this image would change nothing in the database,
+        # "changes" otherwise; anything unexpected must read as changes.
+        PLAN_ONLY=true
+        wait_for_db >/dev/null
+        if ! db_initialized; then echo changes; exit 0; fi
+        main | tail -1
         ;;
     --verify)
         wait_for_db
