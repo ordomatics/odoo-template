@@ -25,8 +25,8 @@ name: CI/CD Pipeline
 #
 # Branch model:
 #   dev     → build + push dev-latest → test-promote (chained)
-#   staging → pull test-latest + validate + promote → values.staging.yaml
-#   main    → pull test-latest + promote             → values.prod.yaml
+#   staging → pull test-<sha> + validate + promote → values.staging.yaml
+#   main    → pull test-<sha> + promote            → values.prod.yaml
 #
 # Values files live in the client's own ordomatics/clients/<slug> deploy
 # repo (one values.<env>.yaml per environment), not in the shared
@@ -270,8 +270,13 @@ jobs:
           username: ${{ secrets.GITLAB_USERNAME }}
           password: ${{ secrets.GITLAB_ACCESS_TOKEN }}
 
-      - name: Pull test-latest
-        run: docker pull ${{ env.IMAGE }}:test-latest
+      # The image built for this exact commit: test-latest may be an older
+      # build, shipped under this commit's tag. Needs a fast-forward from dev.
+      - name: Pull tested image for this commit
+        run: |
+          SRC=${{ env.IMAGE }}:test-${GITHUB_SHA::8}
+          docker pull "$SRC" || { echo "ERROR: $SRC not found: this commit was never built on dev. Push it to dev first, then fast-forward this branch."; exit 1; }
+          docker tag "$SRC" ${{ env.IMAGE }}:test-latest
 
       - name: Test — Odoo CLI
         run: docker run --rm --entrypoint="" ${{ env.IMAGE }}:test-latest odoo --version
@@ -362,8 +367,13 @@ jobs:
           username: ${{ secrets.GITLAB_USERNAME }}
           password: ${{ secrets.GITLAB_ACCESS_TOKEN }}
 
-      - name: Pull test-latest
-        run: docker pull ${{ env.IMAGE }}:test-latest
+      # The image built for this exact commit: test-latest may be an older
+      # build, shipped under this commit's tag. Needs a fast-forward from dev.
+      - name: Pull tested image for this commit
+        run: |
+          SRC=${{ env.IMAGE }}:test-${GITHUB_SHA::8}
+          docker pull "$SRC" || { echo "ERROR: $SRC not found: this commit was never built on dev. Push it to dev first, then fast-forward this branch."; exit 1; }
+          docker tag "$SRC" ${{ env.IMAGE }}:test-latest
 
       - name: Compute tags
         id: tags
