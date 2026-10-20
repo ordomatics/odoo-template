@@ -255,6 +255,69 @@ else:
 PY
 }
 
+# ─── Renamed modules ────────────────────────────────────────────────────────
+# Odoo has no rename: under a new name a module would install afresh beside its
+# old rows. A manifest's "renamed_from" (read only here) names the old ones.
+
+# Prints "old new" per rename declared by a module on the addons path.
+declared_renames() {
+    python3 - "$ODOO_CONFIG" <<'PY'
+import ast, configparser, os, sys
+
+cfg = configparser.ConfigParser()
+cfg.read(sys.argv[1])
+seen = set()
+for path in (p.strip() for p in cfg.get('options', 'addons_path', fallback='').split(',')):
+    if not os.path.isdir(path):
+        continue
+    for name in sorted(os.listdir(path)):
+        manifest = os.path.join(path, name, '__manifest__.py')
+        if name in seen or not os.path.isfile(manifest):
+            continue
+        seen.add(name)
+        try:
+            old_names = ast.literal_eval(open(manifest).read()).get('renamed_from') or []
+        except (SyntaxError, ValueError):
+            continue
+        for old in old_names:
+            print(old, name)
+PY
+}
+
+# The declared renames still to apply to this database.
+pending_renames() {
+    local old new
+    while read -r old new; do
+        [ -n "$old" ] || continue
+        psql_run -d "$DB_NAME" -tAc \
+            "SELECT 1 FROM ir_module_module WHERE name = '$old' AND state <> 'uninstalled'
+             AND NOT EXISTS (SELECT 1 FROM ir_module_module WHERE name = '$new' AND state <> 'uninstalled');" \
+            | grep -qx 1 && echo "$old $new"
+    done < <(declared_renames)
+    return 0
+}
+
+apply_module_renames() {
+    local old new
+    while read -r old new; do
+        [ -n "$old" ] || continue
+        echo "🏷️  Renaming module $old → $new"
+        psql_run -d "$DB_NAME" -q -v ON_ERROR_STOP=1 -v old="$old" -v new="$new" <<'SQL'
+BEGIN;
+-- A row the apps list may have added for the new name, never installed.
+DELETE FROM ir_module_module WHERE name = :'new' AND state = 'uninstalled';
+UPDATE ir_module_module SET name = :'new' WHERE name = :'old';
+UPDATE ir_module_module_dependency SET name = :'new' WHERE name = :'old';
+UPDATE ir_model_data SET module = :'new' WHERE module = :'old';
+UPDATE ir_model_data SET name = 'module_' || :'new'
+ WHERE module = 'base' AND model = 'ir.module.module' AND name = 'module_' || :'old';
+UPDATE ir_ui_view SET key = :'new' || substr(key, length(:'old') + 1)
+ WHERE left(key, length(:'old') + 1) = :'old' || '.';
+COMMIT;
+SQL
+    done < <(pending_renames)
+}
+
 # ─── Main ───────────────────────────────────────────────────────────────────
 
 main() {
@@ -276,6 +339,12 @@ main() {
         echo "🔧 Fresh database — seeding with base module..."
         odoo_run --init=base --log-level=warn
         echo "✅ Base seeded"
+    fi
+
+    if [ "$PLAN_ONLY" = "true" ]; then
+        [ -z "$(pending_renames)" ] || { echo changes; return 0; }
+    else
+        apply_module_renames
     fi
 
     # Query which modules are already installed in this DB
