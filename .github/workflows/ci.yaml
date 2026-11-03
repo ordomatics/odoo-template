@@ -7,7 +7,9 @@ name: CI/CD Pipeline
 #   APP_DOMAIN                zone this deployment is served on; defaults to
 #                             ordomatics.com. A client on their own domain sets it.
 #   EXTERNAL_GITLAB_REGISTRY  e.g. registry.gitlab.com
-#   EXTERNAL_PATH             deploy repo AND registry path, e.g. ordomatics/clients/smartacus/odoo
+#   EXTERNAL_PATH             deploy repo, e.g. ordomatics/clients/smartacus/odoo
+#   EXTERNAL_IMAGE_PATH       registry path when images live elsewhere (a Partner's own
+#                             GitLab project); defaults to EXTERNAL_PATH
 #
 # Required GitHub repo secrets. All of these, and the variables above, are
 # written by the configure-app-ci Backstage operation via the Ordomatics
@@ -45,7 +47,7 @@ on:
 
 env:
   REGISTRY: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}
-  IMAGE_PATH: ${{ vars.EXTERNAL_PATH }}
+  IMAGE_PATH: ${{ vars.EXTERNAL_IMAGE_PATH || vars.EXTERNAL_PATH }}
   PLATFORM_TAG: ${{ vars.PLATFORM_TAG }}
 
 jobs:
@@ -129,7 +131,7 @@ jobs:
       name: test
       url: https://odoo.test.${{ vars.APP_DOMAIN || 'ordomatics.com' }}
     env:
-      IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_PATH }}
+      IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_IMAGE_PATH || vars.EXTERNAL_PATH }}
       DB_HOST: localhost
       DB_PORT: "5432"
       DB_USER: odoo
@@ -239,7 +241,7 @@ jobs:
       name: staging
       url: https://odoo.staging.${{ vars.APP_DOMAIN || 'ordomatics.com' }}
     env:
-      IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_PATH }}
+      IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_IMAGE_PATH || vars.EXTERNAL_PATH }}
       DB_HOST: localhost
       DB_PORT: "5432"
       DB_USER: odoo
@@ -354,7 +356,7 @@ jobs:
       name: production
       url: https://odoo.${{ vars.APP_DOMAIN || 'ordomatics.com' }}
     env:
-      IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_PATH }}
+      IMAGE: ${{ vars.EXTERNAL_GITLAB_REGISTRY }}/${{ vars.EXTERNAL_IMAGE_PATH || vars.EXTERNAL_PATH }}
     steps:
       - name: Check required variables
         run: |
